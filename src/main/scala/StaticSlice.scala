@@ -417,8 +417,10 @@ class StaticSliceBackend extends Backend {
     System.err.println("Elements in slice: " + sliceNodes.size)
 
     val basedir = c.name + ".staticslice";
+    ensureDir(basedir);
+    ensureDir(basedir + "/styles");
 
-    val out_d = createOutputFile(c.name + ".slice.dot")
+    val out_d = createOutputFile(basedir + "/" + c.name + ".slice.dot")
     val out_slice = createOutputFile(basedir + "/slice.js")
     out_d.write("digraph " + c.name + "{\n")
     out_d.write("rankdir = LR;\n")
@@ -436,7 +438,6 @@ class StaticSliceBackend extends Backend {
     out_slice.write(sliceText)
     out_slice.close()
 
-    ensureDir(basedir);
     // Create the HTML pages for the source files
     for (sourceName <- requiredSourceFiles) {
       val escapedSourceName = xml.Utility.escape(sourceName);
@@ -455,6 +456,7 @@ class StaticSliceBackend extends Backend {
       outHtml.write("<body>")
       outHtml.write("<h1>" + escapedSourceName + "</h1>")
       outHtml.write("<h2 id=\"inst\"></h2>")
+      outHtml.write("<noscript>You must enable javascript to view the slice!</noscript>")
       outHtml.write("<p><pre id=\"source-pre\"><code id=\"source\">" + escapedSource + "</code></pre></p>")
       outHtml.write("<script src=\"highlight.pack.js\"></script>")
       outHtml.write("<script>hljs.initHighlightingOnLoad();</script>")
@@ -465,5 +467,23 @@ class StaticSliceBackend extends Backend {
       outHtml.write("</html>\n")
       outHtml.close()
     }
+
+    val escapedSourceName = xml.Utility.escape(c.constructorLine.getFileName());
+    val outHtml = createOutputFile(basedir + "/index.html")
+    outHtml.write("<!DOCTYPE html>\n<html>")
+    outHtml.write("<head>")
+    outHtml.write("<meta charset=\"UTF-8\">")
+    outHtml.write("<title>" + escapedSourceName + " - Chisel Slice</title>")
+    outHtml.write("</head>")
+    outHtml.write("<body>")
+    outHtml.write("<p><a href=\"source_" + escapedSourceName + ".html\">" + "View slice</a></p>")
+    outHtml.write("</body>")
+    outHtml.write("</html>\n")
+    outHtml.close()
+
+    copyToTarget("slice_view.js", basedir + "/slice_view.js")
+    copyToTarget("highlight.pack.js", basedir + "/highlight.pack.js")
+    copyToTarget("default.css", basedir + "/styles/default.css")
+    copyToTarget("slice.css", basedir + "/styles/slice.css")
   }
 }

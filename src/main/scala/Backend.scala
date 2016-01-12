@@ -60,6 +60,20 @@ trait FileSystemUtilities {
     }
   }
 
+  def copyToTarget(from: String, to: String) = {
+    val resourceStream = getClass().getResourceAsStream("/" + from)
+    if( resourceStream != null ) {
+      val classFile = createOutputFile(to)
+      while(resourceStream.available > 0) {
+        classFile.write(resourceStream.read())
+      }
+      classFile.close()
+      resourceStream.close()
+    } else {
+      println(s"WARNING: Unable to copy '$from' to '$to'" )
+    }
+  }
+
   import scala.util.Properties.envOrElse
   protected val CC = envOrElse("CC", "g++" )
   protected val CXX = envOrElse("CXX", "g++" )
