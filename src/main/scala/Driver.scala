@@ -326,6 +326,7 @@ object Driver extends FileSystemUtilities{
     modStackPushed = false
     minimumCompatibility = Version("0.0.0")
     wError = false
+    sliceCriteria = Nil
     chiselConfigClassName = None
     chiselProjectName = None
     chiselConfigMode = None
@@ -420,6 +421,8 @@ object Driver extends FileSystemUtilities{
         }
         case "--minimumCompatibility" => minimumCompatibility = Version(args(i + 1)); i += 1
         case "--wError" => wError = true
+        // Slicer flags
+        case "--slice" => sliceCriteria = args(i + 1) :: sliceCriteria; i += 1
         case any => ChiselError.warning("'" + arg + "' is an unknown argument.")
       }
       i += 1
@@ -437,6 +440,7 @@ object Driver extends FileSystemUtilities{
       case "flo" => new FloBackend
       case "fpga" => new FPGABackend
       case "sysc" => new SysCBackend
+      case "staticslice" => new StaticSliceBackend
       case "v" => new VerilogBackend
       case _ => Class.forName(backendName).newInstance.asInstanceOf[Backend]
     }
@@ -496,6 +500,7 @@ object Driver extends FileSystemUtilities{
   var modAdded: Boolean = false
   var minimumCompatibility = Version("0.0.0")
   var wError = false
+  var sliceCriteria: List[String] = Nil
   /* ChiselConfig flags */
   var chiselConfigClassName: Option[String] = None
   var chiselProjectName: Option[String] = None
@@ -505,6 +510,7 @@ object Driver extends FileSystemUtilities{
   /* For tester */
   val signalMap = LinkedHashMap[Node, Int]()
   var nodeId = 0
+
   def getNodeId = {
     val id = nodeId
     nodeId +=1

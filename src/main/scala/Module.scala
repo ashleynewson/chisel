@@ -74,6 +74,14 @@ object Module {
       //   ChiselError.error(new ChiselError(() => {"All IO's must have width set: " + io}, io.line))
       io.isIo = true
     }
+
+    // We do this here, so it won't get confused with constructors
+    res.instantiationLine =
+      if (Driver.getLineNumbers) {
+        val trace = new Throwable().getStackTrace
+        ChiselError.findFirstUserLine(trace) getOrElse trace(0)
+      } else null
+
     res
   }
   private def params = if(Driver.parStack.isEmpty) Parameters.empty else Driver.parStack.top
@@ -164,6 +172,18 @@ abstract class Module(var _clock: Option[Clock] = None, private[Chisel] var _res
   var moduleName: String = ""
   var parent: Module = null
   val children = ArrayBuffer[Module]()
+
+  // Initialised in init
+  /** The line at which this module was instantiated within it's parent. */
+  var instantiationLine: StackTraceElement = null
+  // Initialised in Module (super class) constructor
+  /** Used to get the source file for the module. */
+  var constructorLine: StackTraceElement =
+    if (Driver.getLineNumbers) {
+      val trace = new Throwable().getStackTrace
+      ChiselError.findFirstUserLine(trace) getOrElse trace(0)
+    } else null
+
 
   /** Set the declaration name of the module to be string 'n' */
   def setModuleName(n : String) { moduleName = n }
