@@ -48,6 +48,9 @@ class StaticSliceBackend extends Backend {
   /** These source files will be converted into html pages */
   val requiredSourceFiles = Set[String]()
 
+  Driver.getLineNumbers = true
+  Driver.refineNodeStructure = false
+
   object NodeSlice {
     def fromCriterion(criterion: Criterion): NodeSlice = {
       criterion.direction match {
@@ -119,8 +122,7 @@ class StaticSliceBackend extends Backend {
     }
     class Position(val filename: String, val line: Int) {
       def ==(that: StackTraceElement): Boolean = {
-        System.err.println("%s, %s; %s, %s".format(filename, line, that.getFileName(), that.getLineNumber()))
-        (filename == that.getFileName() && line == that.getLineNumber())
+        that != null && (filename == that.getFileName() && line == that.getLineNumber())
       }
     }
 
@@ -390,12 +392,7 @@ class StaticSliceBackend extends Backend {
   override def elaborate(c: Module): Unit = {
     super.elaborate(c)
 
-    /* From Cpp.scala:
-     * We flatten all signals in the toplevel component after we had
-     a change to associate node and components correctly first
-     otherwise we are bound for assertions popping up left and right
-     in the Backend.elaborate method. */
-    flattenAll // created Driver.orderedNodes
+    flattenAll
 
     if (Driver.partitionIslands) {
       islands = createIslands()

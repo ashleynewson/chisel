@@ -327,6 +327,7 @@ object Driver extends FileSystemUtilities{
     minimumCompatibility = Version("0.0.0")
     wError = false
     sliceCriteria = Nil
+    refineNodeStructure = true
     chiselConfigClassName = None
     chiselProjectName = None
     chiselConfigMode = None
@@ -501,6 +502,7 @@ object Driver extends FileSystemUtilities{
   var minimumCompatibility = Version("0.0.0")
   var wError = false
   var sliceCriteria: List[String] = Nil
+  var refineNodeStructure = true
   /* ChiselConfig flags */
   var chiselConfigClassName: Option[String] = None
   var chiselProjectName: Option[String] = None

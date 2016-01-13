@@ -327,7 +327,7 @@ class Backend extends FileSystemUtilities{
           case io: Bits if io.isIo && io.dir == INPUT => p.parent
           case _ => p
         }
-        if (!node.isTypeNode) p.nodes += node
+        if (!node.isTypeNode || !Driver.refineNodeStructure) p.nodes += node
         node.inputs filterNot (_.isTypeNode) foreach (input => input.compOpt match {
           case None => input.compOpt = Some(curComp)
           case Some(q) => if (p != q && !input.isLit &&
@@ -879,11 +879,13 @@ class Backend extends FileSystemUtilities{
       ChiselError.info("eliminating W0W (post width check)")
       W0Wtransform
     }
-    ChiselError.info("lowering complex nodes to primitives")
-    lowerNodes(c)
-    ChiselError.info("removing type nodes")
-    val nbNodes = removeTypeNodes(c)
-    ChiselError.info("compiling %d nodes".format(nbNodes))
+    if (Driver.refineNodeStructure) {
+      ChiselError.info("lowering complex nodes to primitives")
+      lowerNodes(c)
+      ChiselError.info("removing type nodes")
+      val nbNodes = removeTypeNodes(c)
+      ChiselError.info("compiling %d nodes".format(nbNodes))
+    }
     ChiselError.checkpoint()
 
     ChiselError.info("computing memory ports")
