@@ -235,4 +235,8 @@ abstract class Data extends Node {
       case _ => super.isTypeOnly
     }
   }
+
+  override def getSimulationNode(): SimulationNode = {
+    new SimulationBuffer(this)
+  }
 }

@@ -442,6 +442,7 @@ object Driver extends FileSystemUtilities{
       case "fpga" => new FPGABackend
       case "sysc" => new SysCBackend
       case "staticslice" => new StaticSliceBackend
+      case "dynamicslice" => new DynamicSliceBackend
       case "v" => new VerilogBackend
       case _ => Class.forName(backendName).newInstance.asInstanceOf[Backend]
     }

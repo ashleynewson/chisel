@@ -32,12 +32,13 @@ package Chisel
 
 import collection.mutable.{Map,Set,SortedSet}
 
-class StaticSliceBackend extends Backend {
+class DynamicSliceBackend extends Backend {
   import PartitionIslands._
   var islands = Array[Island]()
   val allDottable = false
   val useComponentNames = false
   var criteria: List[Criterion] = Nil
+  var simulation: Simulation = null
   /** Nodes which are the start of any slice */
   val seedNodes = Set[Node]()
   /**
@@ -50,7 +51,7 @@ class StaticSliceBackend extends Backend {
   val requiredSourceFiles = Set[String]()
 
   Driver.getLineNumbers = true
-  Driver.refineNodeStructure = false
+  Driver.refineNodeStructure = true
 
   object NodeSlice {
     def fromCriterion(criterion: Criterion): NodeSlice = {
@@ -373,9 +374,9 @@ class StaticSliceBackend extends Backend {
                   island_res.append(indent)
                   island_res.append(edge);
                 }
-                if (isLinkInSlice(in, m)) {
-                  sliceLines ++= linkTraces(in, m).map(a => a.getLineNumber())
-                }
+                // if (isLinkInSlice(in, m)) {
+                //   sliceLines ++= linkTraces(in, m).map(a => a.getLineNumber())
+                // }
               }
             }
           }
@@ -426,6 +427,9 @@ class StaticSliceBackend extends Backend {
     super.elaborate(c)
 
     flattenAll
+
+    simulation = new Simulation(c)
+    simulation.run()
 
     if (Driver.partitionIslands) {
       islands = createIslands()

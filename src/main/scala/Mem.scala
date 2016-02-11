@@ -199,6 +199,10 @@ class Mem[T <: Data](gen: () => T, val n: Int, val seqRead: Boolean, val ordered
   }
   // Chisel3 - this node contains data - used for verifying Wire() wrapping
   override def isTypeOnly = false
+
+  override def getSimulationNode(): SimulationNode = {
+    new SimulationMem(this)
+  }
 }
 
 abstract class MemAccess(val mem: Mem[_], addri: Node) extends Node {
@@ -225,6 +229,10 @@ class MemRead(mem: Mem[_ <: Data], addri: Node) extends MemAccess(mem, addri) {
 
   override def toString: String = mem + "[" + addr + "]"
   override def getPortType: String = "cread"
+
+  override def getSimulationNode(): SimulationNode = {
+    new SimulationMemRead(this)
+  }
 }
 
 class MemSeqRead(mem: Mem[_ <: Data], addri: Node) extends MemAccess(mem, addri) with Delay {
@@ -294,6 +302,10 @@ class MemWrite(mem: Mem[_ <: Data], condi: Bool, addri: Node, datai: Node, maski
   override def toString: String = mem + "[" + addr + "] = " + data + " COND " + cond
   override def getPortType: String = if (isMasked) "mwrite" else "write"
   override def usesInClockHi(n: Node) = inputs.contains(n)
+
+  override def getSimulationNode(): SimulationNode = {
+    new SimulationMemWrite(this)
+  }
 }
 
 // Chisel3

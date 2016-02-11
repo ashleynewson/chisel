@@ -33,6 +33,31 @@ package Chisel
 import scala.collection.mutable.{ArrayBuffer, Stack, LinkedHashSet}
 
 object Node {
+  /* With more effort, this could be more precise. */
+  class TrackingArrayBuffer[A] extends ArrayBuffer[A] {
+    /** Tracks which lines in the source code define input connections */
+    val lineMap = collection.mutable.Map[A, collection.mutable.Set[StackTraceElement]]()
+    private def addSTE(elem: A): Unit = {
+      val trace = new Throwable().getStackTrace
+      val chiselTrace = ChiselError.findFirstUserLine(trace) getOrElse null
+      if (chiselTrace != null) {
+        if (lineMap.contains(elem)) {
+          lineMap(elem) += chiselTrace
+        } else {
+          lineMap(elem) = collection.mutable.Set(chiselTrace)
+        }
+      }
+    }
+    override def += (elem: A) = {
+      addSTE(elem)
+      super.$plus$eq(elem)
+    }
+    override def update (idx: Int, elem: A) = {
+      addSTE(elem)
+      super.update(idx, elem)
+    }
+  }
+
   /** print a message to stdout in c style printf
     * @param message A string with c like chars in it (%d, %x etc)
     * @param args Nodes whos values to fetch to print
@@ -169,8 +194,10 @@ abstract class Node extends Nameable {
   private[Chisel] var inferWidth: (=> Node) => Width = Node.maxWidth
   /** The clock for this node */
   var clock: Option[Clock] = None
+
   /** The inputs that this node depends on */
-  val inputs = ArrayBuffer[Node]()
+  val inputs: ArrayBuffer[Node] =
+    if (Driver.getLineNumbers) new Node.TrackingArrayBuffer[Node]() else ArrayBuffer[Node]()
   /** nodes that consume one of my outputs */
   val consumers = LinkedHashSet[Node]()
   /** The trace information for chisel for this node */
@@ -553,4 +580,6 @@ abstract class Node extends Nameable {
   def isZeroWidth: Boolean = {
     isKnownWidth && getWidth == 0
   }
+
+  def getSimulationNode(): SimulationNode = {assert(false, ChiselError.error("Simulation does not support this node: " + getClass())); new SimulationBuffer(this)}
 }

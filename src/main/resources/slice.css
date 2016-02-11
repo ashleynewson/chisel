@@ -1,0 +1,21 @@
+pre .numbering, pre code {
+    display: block;
+}
+
+pre .numbering {
+    text-align: right;
+    float: left;
+    border-right: 1px solid;
+}
+
+pre .numbering span {
+    display: block;
+}
+
+pre {
+    overflow:auto;
+}
+
+.in-slice {
+    background: #0F0;
+}

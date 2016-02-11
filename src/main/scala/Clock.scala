@@ -72,4 +72,8 @@ class Clock(reset: Bool = Driver.implicitReset,
   /** divide the clock period
     * Will create another clock with the respective period */
   def / (x: Int) = Clock(reset, Some(this), period / x.toDouble)
+
+  override def getSimulationNode(): SimulationNode = {
+    new SimulationClock(this)
+  }
 }

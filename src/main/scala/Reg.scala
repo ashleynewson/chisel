@@ -167,4 +167,8 @@ class Reg extends Delay with proc {
   def updateValue: Node = if (isEnable) next.inputs(1) else next
   // Chisel3 - this node contains data - used for verifying Wire() wrapping
   override def isTypeOnly = false
+
+  override def getSimulationNode(): SimulationNode = {
+    new SimulationReg(this)
+  }
 }

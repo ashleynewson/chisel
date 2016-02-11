@@ -517,6 +517,14 @@ abstract class Bits extends Data with proc {
       component addAssignment this
     }
   }
+
+  override def getSimulationNode(): SimulationNode = {
+    dir match {
+      case NODIR => new SimulationBuffer(this)
+      case INPUT => new SimulationInput(this)
+      case OUTPUT => new SimulationOutput(this)
+    }
+  }
 }
 
 

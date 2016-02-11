@@ -340,4 +340,8 @@ class Literal extends Node {
   }
   // Chisel3 - this node contains data - used for verifying Wire() wrapping
   override def isTypeOnly = false
+
+  override def getSimulationNode(): SimulationNode = {
+    new SimulationLiteral(this)
+  }
 }
