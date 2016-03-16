@@ -80,7 +80,13 @@ class Simulation(val topModule: Module) {
 
   def run(): Unit = {
     while (true) {
-      step()
+      System.err.println("Simulation command?")
+      val action = readLine()
+      if (action == null || action == "") {
+        step()
+      } else if (action == "end") {
+        return
+      }
     }
   }
 
@@ -96,5 +102,29 @@ class Simulation(val topModule: Module) {
         nextClockToTick = simulationClock
       }
     }
+  }
+
+  def addForwardNode(node: Node): Unit = {
+    nodeMap(node).trackForward()
+  }
+
+  def traceNodes(): Set[Node] = {
+    val traceSet = Set[Node]()
+    for ((_, simulationNode) <- nodeMap) {
+      if (simulationNode.isTracked) {
+        traceSet ++= simulationNode.traceNodes()
+      }
+    }
+    traceSet
+  }
+
+  def criticalNodes(): Set[Node] = {
+    val traceSet = Set[Node]()
+    for ((_, simulationNode) <- nodeMap) {
+      if (simulationNode.isTracked) {
+        traceSet += simulationNode.node
+      }
+    }
+    traceSet
   }
 }

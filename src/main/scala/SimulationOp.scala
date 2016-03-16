@@ -8,16 +8,17 @@ class SimulationOp(node: Op) extends SimulationNode(node) {
   override val clocked = false
 
   override def evaluate(): Unit = {
+    outputBits.clear()
     inputs.length match {
       case 1 =>
         node.op match {
           case "~" =>
             for (i <- 0 to outputBits.highest) {
-              outputBits(i) = !inputs(0).output(i)
+              outputBits(i) := !inputs(0).output(i)
             }
           case "f-" => {
             outputBits := inputs(0).output
-            outputBits(31) = !inputs(0).output(31)
+            outputBits(31) := !inputs(0).output(31)
           }
           case "fsin" => outputBits.float = math.sin(inputs(0).output.float.toDouble).toFloat
           case "fcos" => outputBits.float = math.cos(inputs(0).output.float.toDouble).toFloat
@@ -29,7 +30,7 @@ class SimulationOp(node: Op) extends SimulationNode(node) {
           case "fround" => outputBits.float = inputs(0).output.float.round
           case "d-" => {
             outputBits := inputs(0).output
-            outputBits(63) = !inputs(0).output(63)
+            outputBits(63) := !inputs(0).output(63)
           }
           case "dsin" => outputBits.double = math.sin(inputs(0).output.double)
           case "dcos" => outputBits.double = math.cos(inputs(0).output.double)
@@ -54,27 +55,44 @@ class SimulationOp(node: Op) extends SimulationNode(node) {
           case "s/s" => outputBits.bigInt = inputs(0).output.sBigInt / inputs(1).output.sBigInt
           case "%" => outputBits.bigInt = inputs(0).output.bigInt % inputs(1).output.bigInt
           case "s%s" => outputBits.bigInt = inputs(0).output.sBigInt % inputs(1).output.sBigInt
-          case "^" =>
+          case "^" => {
             for (i <- 0 to outputBits.highest) {
-              outputBits(i) = inputs(0).output(i) != inputs(1).output(i)
+              outputBits(i) := inputs(0).output(i).value != inputs(1).output(i).value
+              outputBits(i).depend(inputs(0).output(i))
+              outputBits(i).depend(inputs(1).output(i))
             }
+          }
           case "-" => outputBits.bigInt = inputs(0).output.bigInt - inputs(1).output.bigInt
           case "##" => {
             for (i <- 0 to inputs(0).output.highest) {
-              outputBits(i + inputs(1).width) = inputs(0).output(i)
+              outputBits(i + inputs(1).width) := inputs(0).output(i)
+              outputBits(i + inputs(1).width).depend(inputs(0).output(i))
             }
             for (i <- 0 to inputs(1).output.highest) {
-              outputBits(i) = inputs(1).output(i)
+              outputBits(i) := inputs(1).output(i)
+              outputBits(i).depend(inputs(1).output(i))
             }
           }
-          case "&" =>
+          case "&" => {
             for (i <- 0 to outputBits.highest) {
-              outputBits(i) = inputs(0).output(i) && inputs(1).output(i)
+              outputBits(i) := inputs(0).output(i) && inputs(1).output(i)
+              if ((inputs(0).output(i).critical && (inputs(1).output(i) || inputs(1).output(i).critical)) ||
+                  (inputs(1).output(i).critical && (inputs(0).output(i) || inputs(0).output(i).critical))) {
+                outputBits(i).depend(inputs(0).output(i))
+                outputBits(i).depend(inputs(1).output(i))
+              }
             }
-          case "|" =>
+          }
+          case "|" => {
             for (i <- 0 to outputBits.highest) {
-              outputBits(i) = inputs(0).output(i) || inputs(1).output(i)
+              outputBits(i) := inputs(0).output(i) || inputs(1).output(i)
+              if ((inputs(0).output(i).critical && (!inputs(1).output(i) || inputs(1).output(i).critical)) ||
+                  (inputs(1).output(i).critical && (!inputs(0).output(i) || inputs(0).output(i).critical))) {
+                outputBits(i).depend(inputs(0).output(i))
+                outputBits(i).depend(inputs(1).output(i))
+              }
             }
+          }
           case "f+" => outputBits.float = inputs(0).output.float + inputs(1).output.float
           case "f-" => outputBits.float = inputs(0).output.float - inputs(1).output.float
           case "f*" => outputBits.float = inputs(0).output.float * inputs(1).output.float
@@ -109,8 +127,29 @@ class SimulationOp(node: Op) extends SimulationNode(node) {
         }
       case 3 =>
         node.op match {
-          case "Mux" =>
+          case "Mux" => {
             outputBits := (if (inputs(0).output(0)) inputs(1).output else inputs(2).output)
+            if (inputs(0).output(0).critical) {
+              for (i <- 0 to outputBits.highest) {
+                outputBits(i).depend(inputs(1).output(i))
+                outputBits(i).depend(inputs(2).output(i))
+                if (inputs(1).output(i) != inputs(2).output(i) ||
+                    inputs(1).output(i).critical || inputs(2).output(i).critical) {
+                  outputBits(i).depend(inputs(0).output(i))
+                }
+              }
+            } else {
+              if (inputs(0).output(0)) {
+                for (i <- 0 to outputBits.highest) {
+                  outputBits(i).depend(inputs(1).output(i))
+                }
+              } else {
+                for (i <- 0 to outputBits.highest) {
+                  outputBits(i).depend(inputs(2).output(i))
+                }
+              }
+            }
+          }
           case _ => ChiselError.error("Unsupported simulation operator in simulation: ternary " + node.op)
         }
       case _ => ChiselError.error("Unsupported simulation operator in simulation: unsupported arity " + node.op)

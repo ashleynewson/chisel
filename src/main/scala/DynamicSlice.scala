@@ -32,7 +32,7 @@ package Chisel
 
 import collection.mutable.{Map,Set,SortedSet}
 
-class DynamicSliceBackend extends Backend {
+class DynamicSliceBackend extends Backend with Slicer {
   import PartitionIslands._
   var islands = Array[Island]()
   val allDottable = false
@@ -46,141 +46,13 @@ class DynamicSliceBackend extends Backend {
    criteria
    */
   var sliceNodes: Set[Node] = null
+  var criticalNodes: Set[Node] = null
   var sliceLinks: Map[Node,Map[Node,Set[StackTraceElement]]] = null
   /** These source files will be converted into html pages */
   val requiredSourceFiles = Set[String]()
 
   Driver.getLineNumbers = true
   Driver.refineNodeStructure = true
-
-  object NodeSlice {
-    def fromCriterion(criterion: Criterion): NodeSlice = {
-      criterion.direction match {
-        case Criterion.Direction.Backward => new BackwardNodeSlice(criterion)
-        case Criterion.Direction.Forward  => new ForwardNodeSlice(criterion)
-      }
-    }
-  }
-  abstract class NodeSlice(val criterion: Criterion) {
-    /** Nodes of interest (traced nodes) */
-    val nodes = Set[Node]()
-    val links = Set[StackTraceElement]()
-    var newNodes = Set[Node]()
-    /** Find some more nodes of interest */
-    def traceStep(latestNodes: Set[Node]): Set[Node]
-    /** Find all nodes of interest */
-    def trace(): Unit = {
-      newNodes = nodes
-      do {
-        newNodes = traceStep(newNodes)
-        nodes ++= newNodes
-      } while (newNodes.size > 0)
-      // for (node <- nodes) {
-      //   val trackingInputs = node.inputs.asInstanceOf[Node.TrackingArrayBuffer[Node]]
-      //   for ((consumer, lineSet) <- trackingInputs.lineMap) {
-      //     if (nodes(consumer)) {
-      //       if (links.contains(node)) {
-      //         links(node) += (consumer -> lineSet)
-      //       } else {
-      //         links(node) = Map((consumer -> lineSet))
-      //       }
-      //     }
-      //   }
-      // }
-    }
-  }
-  class BackwardNodeSlice(criterion: Criterion) extends NodeSlice(criterion) {
-    override def traceStep(latestNodes: Set[Node]): Set[Node] = {
-      val newNodes = Set[Node]()
-      for (recentNode <- latestNodes) {
-        newNodes ++= recentNode.inputs
-      }
-      // Don't cause needless rescanning
-      newNodes -- nodes
-    }
-
-    nodes ++= criterion.nodes
-    trace()
-  }
-  class ForwardNodeSlice(criterion: Criterion) extends NodeSlice(criterion) {
-    override def traceStep(latestNodes: Set[Node]): Set[Node] = {
-      val newNodes = Set[Node]()
-      for (recentNode <- latestNodes) {
-        newNodes ++= recentNode.consumers
-      }
-      // Don't cause needless rescanning
-      newNodes -- nodes
-    }
-
-    nodes ++= criterion.nodes
-    trace()
-  }
-
-  object Criterion {
-    object Direction extends Enumeration {
-      val None, Forward, Backward = Value
-    }
-  }
-
-  class Criterion(top: Module, val specification: String) {
-    import Criterion._
-    /** The source line sequence that specifies the node */
-    val (direction, positions) = parseSpecification(specification)
-    /** The node this criterion points at */
-    val nodes = findNode(top, positions);
-
-    object Position {
-      def apply(positionStr: String): Position = {
-        val parts = positionStr.split(":")
-        new Position(parts(0), parts(1).toInt)
-      }
-    }
-    class Position(val filename: String, val line: Int) {
-      def ==(that: StackTraceElement): Boolean = {
-        that != null && (filename == that.getFileName() && line == that.getLineNumber())
-      }
-    }
-
-    /**
-     Parses a --slice argument string
-     @example "backward@TopModule.scala:15/SubModule1.scala:23"
-     */
-    def parseSpecification(specification: String): (Direction.Value, List[Position]) = {
-      val parts = specification.split("@")
-      val direction = parts(0) match {
-        case "forward" => Direction.Forward
-        case "backward" => Direction.Backward
-        case _ => {
-          ChiselError.error("Invalid direction on slice criteria \"%s\"".format(specification))
-          Direction.None
-        }
-      }
-      val positionStrs = parts(1).split("/")
-      val positions = positionStrs.map((str) => Position(str)).toList
-      (direction, positions)
-    }
-
-    def findNode(top: Module, positions: List[Position]): Set[Node] = {
-      val position :: nextPositions = positions
-      val found = Set[Node]()
-      if (nextPositions == Nil) {
-        // Were looking for a node.
-        for (node <- top.nodes) {
-          if (position == node.line) {
-            found += node
-          }
-        }
-      } else {
-        // Were looking for a module instantiation.
-        for (subModule <- top.children) {
-          if (position == subModule.instantiationLine) {
-            found ++= findNode(subModule, nextPositions)
-          }
-        }
-      }
-      found
-    }
-  }
 
   override def emitRef(node: Node): String = {
     node match {
@@ -313,6 +185,8 @@ class DynamicSliceBackend extends Backend {
             var color = "color=\"black\""
             if (seedNodes(m)) {
               color = "color=\"red\""
+            } else if (criticalNodes(m)) {
+              color = "color=\"cyan\""
             } else if (sliceNodes(m)) {
               color = "color=\"green\""
             }
@@ -429,7 +303,6 @@ class DynamicSliceBackend extends Backend {
     flattenAll
 
     simulation = new Simulation(c)
-    simulation.run()
 
     if (Driver.partitionIslands) {
       islands = createIslands()
@@ -445,23 +318,22 @@ class DynamicSliceBackend extends Backend {
       System.err.println("Founds node from criterion " + criterion.specification + " to be " + criterion.nodes.map((node) => node.name))
       seedNodes ++= criterion.nodes
 
-      val nodeSlice = NodeSlice.fromCriterion(criterion)
-      sliceNodeSets += nodeSlice.nodes
+      for (node <- criterion.nodes) {
+        criterion.direction match {
+          case Criterion.Direction.Forward => simulation.addForwardNode(node)
+        }
+      }
       // sliceLinksRaw ++= nodeSlice.links
     }
-    sliceNodes = sliceNodeSets.reduce((a, b) => a&b)
-    System.err.println("Nodes in slice: " + sliceNodes.size)
-    // for ((from, toset) <- sliceLinksRaw) {
-    //   if (sliceNodes(from)) {
-    //     for ((to, set) <- toset) {
-    //       if (sliceNodes(to)) {
-    //         sliceLinks(from) = Map(to, set)
-    //       }
-    //     }
-    //   }
-    // }
 
-    val basedir = c.name + ".staticslice";
+    simulation.run()
+
+    criticalNodes = simulation.criticalNodes()
+    sliceNodes = simulation.traceNodes()
+    System.err.println("Critical nodes: " + criticalNodes.size)
+    System.err.println("Nodes in slice: " + sliceNodes.size)
+
+    val basedir = c.name + ".dynamicslice";
     ensureDir(basedir);
     ensureDir(basedir + "/styles");
 

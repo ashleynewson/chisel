@@ -11,11 +11,12 @@ abstract class SimulationNode(val node: Node) {
   val width = node.width
   val clocked: Boolean
   var inputs: Array[SimulationNode] = null
-  protected var outputBits = new SimulationBits(node.width)
+  protected var outputBits = new SimulationBits(node.width, this)
   /** A node with a higher index is run after a node with a lower index. */
   protected var evaluationIndex = -1
   var clockSet = Set[SimulationClock]()
   var clockSetReady = false
+  var forwardTracked = false
 
   // It may be useful to make groups evaluate together to aid memory cache hits...
   // Not prematurely optimising for now.
@@ -80,5 +81,25 @@ abstract class SimulationNode(val node: Node) {
 
   def <(that: SimulationNode): Boolean = {
     order < that.order
+  }
+
+  def trackForward(): Unit = {
+    for (bit <- outputBits.bits) {
+      bit.trackForward()
+    }
+  }
+
+  def isTracked: Boolean = {
+    outputBits.critical
+  }
+
+  def traceNodes(): Set[Node] = {
+    val traceSet = Set[SimulationNode](this)
+    for (bit <- outputBits.bits) {
+      if (bit.critical) {
+        traceSet ++= bit.traceSimulationNodes()
+      }
+    }
+    traceSet.map(_.node)
   }
 }

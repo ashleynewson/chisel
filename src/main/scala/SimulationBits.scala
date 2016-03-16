@@ -4,23 +4,32 @@
 
 package Chisel
 
-class SimulationBits(val width: Int) {
+class SimulationBits(val width: Int, var producer: SimulationNode = null) {
   val highest = width - 1
-  val bits = new Array[Boolean](width)
+  val bits = new Array[SimulationBit](width)
+  for (i <- 0 to highest) bits(i) = new SimulationBit(false, producer)
+  // val bits = new Array[Boolean](width)
+  // val history = new Array[SimulationBitHistory](width)
 
   def :=(that: SimulationBits): SimulationBits = {
-    that.bits.copyToArray(bits)
+    // that.bits.copyToArray(bits)
+    // that.history.copyToArray(history)
+    // that
+    for (i <- 0 to highest) {
+      bits(i) := that.bits(i)
+    }
     that
   }
 
-  def apply(idx: Int): Boolean = bits(idx)
-  def update(idx: Int, bit: Boolean): Boolean = {bits(idx) = bit; bit}
+  def apply(idx: Int): SimulationBit = bits(idx)
+  def update(idx: Int, bit: SimulationBit): SimulationBit = {bits(idx) := bit; bit}
+  def update(idx: Int, bit: Boolean): Boolean = {bits(idx) := bit; bit}
 
   def int: Int = {
     var num: Int = 0
     var sig: Int = 1
     for (i <- 0 to highest) {
-      if (bits(i)) {
+      if (bits(i).value) {
         num |= sig
       }
       sig <<= 1
@@ -32,13 +41,13 @@ class SimulationBits(val width: Int) {
     var num: Int = 0
     var sig: Int = 1
     for (i <- 0 to highest) {
-      if (bits(i)) {
+      if (bits(i).value) {
         num |= sig
       }
       sig <<= 1
     }
     for (i <- highest + 1 to 31) {
-      if (bits(highest)) {
+      if (bits(highest).value) {
         num |= sig
       }
       sig <<= 1
@@ -50,7 +59,7 @@ class SimulationBits(val width: Int) {
   def int_=(num: Int): Int = {
     var sig: Int = 1
     for (i <- 0 to highest) {
-      bits(i) = (num & sig) != 0
+      bits(i).value = (num & sig) != 0
       sig <<= 1
     }
     num
@@ -60,7 +69,7 @@ class SimulationBits(val width: Int) {
     var num: Long = 0
     var sig: Long = 1
     for (i <- 0 to highest) {
-      if (bits(i)) {
+      if (bits(i).value) {
         num |= sig
       }
       sig <<= 1
@@ -72,7 +81,7 @@ class SimulationBits(val width: Int) {
   def long_=(num: Long): Long = {
     var sig: Long = 1
     for (i <- 0 to highest) {
-      bits(i) = (num & sig) != 0
+      bits(i).value = (num & sig) != 0
       sig <<= 1
     }
     num
@@ -82,13 +91,13 @@ class SimulationBits(val width: Int) {
     var num: Long = 0
     var sig: Long = 1
     for (i <- 0 to highest) {
-      if (bits(i)) {
+      if (bits(i).value) {
         num |= sig
       }
       sig <<= 1
     }
     for (i <- highest + 1 to 63) {
-      if (bits(highest)) {
+      if (bits(highest).value) {
         num |= sig
       }
       sig <<= 1
@@ -101,7 +110,7 @@ class SimulationBits(val width: Int) {
     var num: BigInt = 0
     var sig: BigInt = 1
     for (i <- 0 to highest) {
-      if (bits(i)) {
+      if (bits(i).value) {
         num |= sig
       }
       sig <<= 1
@@ -113,10 +122,10 @@ class SimulationBits(val width: Int) {
   def sBigInt: BigInt = {
     var num: BigInt = 0
     var sig: BigInt = 1
-    if (bits(highest)) {
+    if (bits(highest).value) {
       num = -1 // Preset all bits to 1
       for (i <- 0 to highest) {
-        if (!bits(i)) {
+        if (!bits(i).value) {
           num &~= sig
         }
         sig <<= 1
@@ -124,7 +133,7 @@ class SimulationBits(val width: Int) {
     } else {
       num = 0
       for (i <- 0 to highest) {
-        if (bits(i)) {
+        if (bits(i).value) {
           num |= sig
         }
         sig <<= 1
@@ -136,7 +145,7 @@ class SimulationBits(val width: Int) {
   def bigInt_=(num: BigInt): BigInt = {
     var sig: BigInt = 1
     for (i <- 0 to highest) {
-      bits(i) = (num & sig) != 0
+      bits(i).value = (num & sig) != 0
       sig <<= 1
     }
     num
@@ -163,8 +172,34 @@ class SimulationBits(val width: Int) {
   override def toString(): String = {
     val str = new StringBuilder()
     for (i <- highest to 0 by -1) {
-      str.append(if (bits(i)) "1" else "0")
+      str.append(if (bits(i).value) "1" else "0")
+      str.append(if (bits(i).critical) "*" else " ")
     }
     str.toString()
+  }
+
+  def clear(): Unit = {
+    for (bit <- bits) {
+      bit.clear()
+    }
+  }
+
+  def critical: Boolean = {
+    for (bit <- bits) {
+      if (bit.critical) {
+        return true
+      }
+    }
+    false
+  }
+
+  def depend(that: SimulationBits): Unit = {
+    for (tbit <- that.bits) {
+      if (tbit.critical) {
+        for (bit <- that.bits) {
+          bit.depend(tbit)
+        }
+      }
+    }
   }
 }
