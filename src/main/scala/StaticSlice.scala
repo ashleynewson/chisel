@@ -50,7 +50,7 @@ class StaticSliceBackend extends Backend with Slicer {
   val requiredSourceFiles = Set[String]()
 
   Driver.getLineNumbers = true
-  Driver.refineNodeStructure = false
+  Driver.refineNodeStructure = true
 
   object NodeSlice {
     def fromCriterion(criterion: Criterion): NodeSlice = {
@@ -379,7 +379,12 @@ class StaticSliceBackend extends Backend with Slicer {
       sliceNodeSets += nodeSlice.nodes
       // sliceLinksRaw ++= nodeSlice.links
     }
-    sliceNodes = sliceNodeSets.reduce((a, b) => a&b)
+    if (sliceNodeSets.size > 0) {
+      sliceNodes = sliceNodeSets.reduce((a, b) => a&b)
+    } else {
+      System.err.println("Warning: No slice sets")
+      sliceNodes = Set()
+    }
     System.err.println("Nodes in slice: " + sliceNodes.size)
     // for ((from, toset) <- sliceLinksRaw) {
     //   if (sliceNodes(from)) {

@@ -9,6 +9,6 @@ class SimulationOutput(node: Data) extends SimulationNode(node) {
 
   override def evaluate(): Unit = {
     outputBits := inputs(0).output
-    System.err.println("Output " + node.line.getFileName() + ":" + node.line.getLineNumber() + " is " + output.toString())
+    // System.err.println("Output " + node.line.getFileName() + ":" + node.line.getLineNumber() + " is " + output.toString())
   }
 }

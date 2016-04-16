@@ -95,6 +95,10 @@ class ROMData(elts: SortedMap[Int, Node], val n: Int) extends Node {
 
   override lazy val isInObject: Boolean = true
   override lazy val isInVCD: Boolean = Driver.isVCDMem
+
+  override def getSimulationNode(): SimulationNode = {
+    new SimulationROMData(this)
+  }
 }
 
 /** Class to read from ROM - internal, do not use */
@@ -109,4 +113,8 @@ class ROMRead extends Node {
 
   override def forceMatchingWidths: Unit =
     inputs(0) = addr.matchWidth(Width(log2Up(rom.n)))
+
+  override def getSimulationNode(): SimulationNode = {
+    new SimulationROMRead(this)
+  }
 }

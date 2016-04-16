@@ -14,6 +14,10 @@ class Simulation(val topModule: Module) {
   val simulationClocks = Set[SimulationClock]()
   private var nextClockToTick: SimulationClock = null
 
+  private val simulationBits = Set[SimulationBit]()
+
+  var reset: Boolean = true
+
   addSimulationNodes(topModule)
   for (clock <- Driver.clocks) {
     if (nodeMap.get(clock).isEmpty) {
@@ -28,6 +32,9 @@ class Simulation(val topModule: Module) {
   associateClocks()
   orderSimulationNodes()
   nextClockToTick = simulationClocks.head
+  for (simulationNode <- nodeMap.values) {
+    simulationBits ++= simulationNode.getSimulationBits()
+  }
 
   private def findSimulationClocks(): Unit = {
     for (simulationNode <- nodeMap.values) {
@@ -39,6 +46,10 @@ class Simulation(val topModule: Module) {
         case _ => ()
       }
     }
+  }
+
+  def getSimulationBits(): Set[SimulationBit] = {
+    simulationBits.clone()
   }
 
   private def addSimulationNodes(module: Module): Unit = {
@@ -104,27 +115,59 @@ class Simulation(val topModule: Module) {
     }
   }
 
-  def addForwardNode(node: Node): Unit = {
-    nodeMap(node).trackForward()
-  }
+  // def forwardTraceNode(forwardFrom: Node): Set[Node] = {
+  //   val fromSimulationNode = nodeMap(forwardFrom)
+  //   val traceSet = Set[Node]()
+  //   for ((node, simulationNode) <- nodeMap) {
+  //     if (simulationNode.affectedBy(fromSimulationNode)) {
+  //       traceSet += node
+  //     }
+  //   }
+  //   traceSet
+  // }
 
-  def traceNodes(): Set[Node] = {
-    val traceSet = Set[Node]()
-    for ((_, simulationNode) <- nodeMap) {
-      if (simulationNode.isTracked) {
-        traceSet ++= simulationNode.traceNodes()
+  // def backwardTraceNode(backwardFrom: Node): Set[Node] = {
+  //   val fromSimulationNode = nodeMap(backwardFrom)
+  //   val traceSet = Set[Node]()
+  //   for ((node, simulationNode) <- nodeMap) {
+  //     if (fromSimulationNode.affectedBy(simulationNode)) {
+  //       traceSet += node
+  //     }
+  //   }
+  //   traceSet
+  // }
+
+  def forwardTraceBit(forwardFrom: SimulationBit): Set[SimulationBit] = {
+    val traceSet = Set[SimulationBit]()
+    for (simulationBit <- simulationBits) {
+      if (simulationBit.affectedBy(forwardFrom)) {
+        traceSet += simulationBit
       }
     }
     traceSet
   }
 
-  def criticalNodes(): Set[Node] = {
-    val traceSet = Set[Node]()
-    for ((_, simulationNode) <- nodeMap) {
-      if (simulationNode.isTracked) {
-        traceSet += simulationNode.node
+  def backwardTraceBit(backwardFrom: SimulationBit): Set[SimulationBit] = {
+    val traceSet = Set[SimulationBit]()
+    for (simulationBit <- simulationBits) {
+      if (backwardFrom.affectedBy(simulationBit)) {
+        traceSet += simulationBit
       }
     }
     traceSet
+  }
+
+  // def criticalNodes(): Set[Node] = {
+  //   val traceSet = Set[Node]()
+  //   for ((_, simulationNode) <- nodeMap) {
+  //     if (simulationNode.isTracked) {
+  //       traceSet += simulationNode.node
+  //     }
+  //   }
+  //   traceSet
+  // }
+
+  def getSimulationNode(node: Node): SimulationNode = {
+    nodeMap(node)
   }
 }

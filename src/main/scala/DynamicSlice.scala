@@ -45,8 +45,9 @@ class DynamicSliceBackend extends Backend with Slicer {
    Nodes which are formed from the intersection of slices from all
    criteria
    */
-  var sliceNodes: Set[Node] = null
-  var criticalNodes: Set[Node] = null
+  var sliceNodes = Set[Node]()
+  var sliceBits: Set[SimulationBit] = null
+  // var criticalNodes: Set[Node] = null
   var sliceLinks: Map[Node,Map[Node,Set[StackTraceElement]]] = null
   /** These source files will be converted into html pages */
   val requiredSourceFiles = Set[String]()
@@ -124,6 +125,7 @@ class DynamicSliceBackend extends Backend with Slicer {
     // Every line of source which is in the slice
     val sliceLines = SortedSet[Int]()
     val childrenJson = Set[String]()
+    val annotationsJson = Set[String]()
 
     for (child <- top.children) {
       if (! Driver.partitionIslands) {
@@ -161,6 +163,16 @@ class DynamicSliceBackend extends Backend with Slicer {
       }
 
       for (m <- top.nodes) {
+        val simulationNode = simulation.getSimulationNode(m)
+        simulationNode match {
+          case simulationAnnotation: SimulationAnnotation => {
+            annotationsJson += "\"%s_%s\":%s".format(m.line.getLineNumber(), m.name, simulationAnnotation.dumpJSON(sliceBits))
+          }
+          case _ => {}
+        }
+      }
+
+      for (m <- top.nodes) {
         if (isDottable(m)) {
           if( m.component == top ) {
             /* We have to check the node's component agrees because output
@@ -185,8 +197,8 @@ class DynamicSliceBackend extends Backend with Slicer {
             var color = "color=\"black\""
             if (seedNodes(m)) {
               color = "color=\"red\""
-            } else if (criticalNodes(m)) {
-              color = "color=\"cyan\""
+            // } else if (criticalNodes(m)) {
+            //   color = "color=\"cyan\""
             } else if (sliceNodes(m)) {
               color = "color=\"green\""
             }
@@ -287,7 +299,8 @@ class DynamicSliceBackend extends Backend with Slicer {
       sliceJsonBuilder.append("{")
       sliceJsonBuilder.append("\"file\":\"" + top.constructorLine.getFileName + "\",")
       sliceJsonBuilder.append("\"lines\":[" + sliceLines.mkString(",") + "],")
-      sliceJsonBuilder.append("\"children\":{" + childrenJson.mkString(",") + "}")
+      sliceJsonBuilder.append("\"children\":{" + childrenJson.mkString(",") + "},")
+      sliceJsonBuilder.append("\"annotations\":{" + annotationsJson.mkString(",") + "}")
       sliceJsonBuilder.append("}")
       sliceJson = sliceJsonBuilder.toString
     }
@@ -311,26 +324,67 @@ class DynamicSliceBackend extends Backend with Slicer {
 
     criteria = Driver.sliceCriteria.map((specification) => new Criterion(c, specification))
 
-    val sliceNodeSets = Set[Set[Node]]()
+    sliceBits = simulation.getSimulationBits()
+    // val sliceNodeSets = Set[Set[Node]]()
     val sliceLinksRaw = Map[Node,Map[Node,Set[StackTraceElement]]]()
 
+    simulation.reset = true
+    simulation.step()
+    simulation.reset = false
+    if (Driver.simulationTest == null) {
+      simulation.run()
+    } else {
+      Class.forName(Driver.simulationTest).getConstructors()(0).newInstance(c, simulation)
+    }
+
     for (criterion <- criteria) {
-      System.err.println("Founds node from criterion " + criterion.specification + " to be " + criterion.nodes.map((node) => node.name))
+      System.err.println("Found node from criterion " + criterion.specification + " to be " + criterion.nodes.map((node) => node.name))
       seedNodes ++= criterion.nodes
 
       for (node <- criterion.nodes) {
-        criterion.direction match {
-          case Criterion.Direction.Forward => simulation.addForwardNode(node)
+        val simulationNode = simulation.getSimulationNode(node)
+        val bits: Array[SimulationBit] = criterion.positions.last.address match {
+          case None => {simulationNode.output.bits}
+          case address: Some[Int] => {
+            simulationNode match {
+              case n: SimulationMem => n.read(address.get).bits
+            }
+          }
         }
+        var maskBits = Set[SimulationBit]()
+        for (bit <- bits) {
+          maskBits += bit
+          criterion.direction match {
+            case Criterion.Direction.Forward => {
+              maskBits ++= simulation.forwardTraceBit(bit)
+            }
+            case Criterion.Direction.Backward => {
+              maskBits ++= simulation.backwardTraceBit(bit)
+            }
+          }
+        }
+        sliceBits.retain(maskBits.contains(_))
       }
       // sliceLinksRaw ++= nodeSlice.links
     }
 
-    simulation.run()
-
-    criticalNodes = simulation.criticalNodes()
-    sliceNodes = simulation.traceNodes()
-    System.err.println("Critical nodes: " + criticalNodes.size)
+    if (seedNodes.size == 0) {
+      System.err.println("Warning: No criteria nodes found")
+    }
+    for (bit <- sliceBits) {
+      if (bit.producer != null) {
+        sliceNodes += bit.producer.node
+      }
+    }
+    // // criticalNodes = simulation.criticalNodes()
+    // // sliceNodes = simulation.traceNodes()
+    // if (sliceNodeSets.size > 0) {
+    //   sliceNodes = sliceNodeSets.reduce((a, b) => a&b)
+    // } else {
+    //   System.err.println("Warning: No slice sets")
+    //   sliceNodes = Set()
+    // }
+    // System.err.println("Critical nodes: " + criticalNodes.size)
     System.err.println("Nodes in slice: " + sliceNodes.size)
 
     val basedir = c.name + ".dynamicslice";
@@ -369,6 +423,7 @@ class DynamicSliceBackend extends Backend with Slicer {
       outHtml.write("<title>" + escapedSourceName + " - Chisel Slice</title>")
       outHtml.write("<link rel=\"stylesheet\" href=\"styles/default.css\">")
       outHtml.write("<link rel=\"stylesheet\" href=\"styles/slice.css\">")
+      outHtml.write("<script>var mode = 'source';</script>")
       outHtml.write("</head>")
       outHtml.write("<body>")
       outHtml.write("<h1>" + escapedSourceName + "</h1>")
@@ -378,6 +433,7 @@ class DynamicSliceBackend extends Backend with Slicer {
       outHtml.write("<script src=\"highlight.pack.js\"></script>")
       outHtml.write("<script>hljs.initHighlightingOnLoad();</script>")
       outHtml.write("<script src=\"slice.js\"></script>")
+      outHtml.write("<script src=\"parsing.js\"></script>")
       outHtml.write("<script src=\"slice_view.js\"></script>")
       outHtml.write("</body>")
 
@@ -385,19 +441,48 @@ class DynamicSliceBackend extends Backend with Slicer {
       outHtml.close()
     }
 
-    val escapedSourceName = xml.Utility.escape(c.constructorLine.getFileName());
-    val outHtml = createOutputFile(basedir + "/index.html")
-    outHtml.write("<!DOCTYPE html>\n<html>")
-    outHtml.write("<head>")
-    outHtml.write("<meta charset=\"UTF-8\">")
-    outHtml.write("<title>" + escapedSourceName + " - Chisel Slice</title>")
-    outHtml.write("</head>")
-    outHtml.write("<body>")
-    outHtml.write("<p><a href=\"source_" + escapedSourceName + ".html\">" + "View slice</a></p>")
-    outHtml.write("</body>")
-    outHtml.write("</html>\n")
-    outHtml.close()
+    // Create the HTML page for annotations
+    {
+      val outHtml = createOutputFile(basedir + "/annotation.html")
+      outHtml.write("<!DOCTYPE html>\n<html>")
 
+      outHtml.write("<head>")
+      outHtml.write("<meta charset=\"UTF-8\">")
+      outHtml.write("<title>Annotation - Chisel Slice</title>")
+      outHtml.write("<link rel=\"stylesheet\" href=\"styles/slice.css\">")
+      outHtml.write("<script>var mode = 'annotation';</script>")
+      outHtml.write("</head>")
+      outHtml.write("<body>")
+      outHtml.write("<h1>(Annotation)</h1>")
+      outHtml.write("<h2 id=\"inst\"></h2>")
+      outHtml.write("<noscript>You must enable javascript to view the slice!</noscript>")
+      outHtml.write("<p><pre id=\"annotation-pre\"><code id=\"source\">...</code></pre></p>")
+      outHtml.write("<script src=\"slice.js\"></script>")
+      outHtml.write("<script src=\"parsing.js\"></script>")
+      outHtml.write("<script src=\"annotation_view.js\"></script>")
+      outHtml.write("</body>")
+
+      outHtml.write("</html>\n")
+      outHtml.close()
+    }
+
+    {
+      val escapedSourceName = xml.Utility.escape(c.constructorLine.getFileName());
+      val outHtml = createOutputFile(basedir + "/index.html")
+      outHtml.write("<!DOCTYPE html>\n<html>")
+      outHtml.write("<head>")
+      outHtml.write("<meta charset=\"UTF-8\">")
+      outHtml.write("<title>" + escapedSourceName + " - Chisel Slice</title>")
+      outHtml.write("</head>")
+      outHtml.write("<body>")
+      outHtml.write("<p><a href=\"source_" + escapedSourceName + ".html\">" + "View slice</a></p>")
+      outHtml.write("</body>")
+      outHtml.write("</html>\n")
+      outHtml.close()
+    }
+
+    copyToTarget("parsing.js", basedir + "/parsing.js")
+    copyToTarget("annotation_view.js", basedir + "/annotation_view.js")
     copyToTarget("slice_view.js", basedir + "/slice_view.js")
     copyToTarget("highlight.pack.js", basedir + "/highlight.pack.js")
     copyToTarget("default.css", basedir + "/styles/default.css")

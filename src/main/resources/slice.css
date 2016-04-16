@@ -1,15 +1,24 @@
-pre .numbering, pre code {
+pre .numbering, pre code,  {
     display: block;
+}
+
+.dump b {
+    background: #0F0;
 }
 
 pre .numbering {
     text-align: right;
     float: left;
     border-right: 1px solid;
+    padding-right: 0.5em;
 }
 
-pre .numbering span {
+pre .numbering span, pre .numbering a {
     display: block;
+}
+
+pre .numbering span a {
+    display: inline;
 }
 
 pre {

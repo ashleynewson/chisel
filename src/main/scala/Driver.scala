@@ -327,6 +327,7 @@ object Driver extends FileSystemUtilities{
     minimumCompatibility = Version("0.0.0")
     wError = false
     sliceCriteria = Nil
+    simulationTest = null
     refineNodeStructure = true
     chiselConfigClassName = None
     chiselProjectName = None
@@ -424,6 +425,7 @@ object Driver extends FileSystemUtilities{
         case "--wError" => wError = true
         // Slicer flags
         case "--slice" => sliceCriteria = args(i + 1) :: sliceCriteria; i += 1
+        case "--simulationTest" => simulationTest = args(i + 1); i += 1
         case any => ChiselError.warning("'" + arg + "' is an unknown argument.")
       }
       i += 1
@@ -503,6 +505,7 @@ object Driver extends FileSystemUtilities{
   var minimumCompatibility = Version("0.0.0")
   var wError = false
   var sliceCriteria: List[String] = Nil
+  var simulationTest: String = null
   var refineNodeStructure = true
   /* ChiselConfig flags */
   var chiselConfigClassName: Option[String] = None

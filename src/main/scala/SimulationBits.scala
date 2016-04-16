@@ -173,7 +173,7 @@ class SimulationBits(val width: Int, var producer: SimulationNode = null) {
     val str = new StringBuilder()
     for (i <- highest to 0 by -1) {
       str.append(if (bits(i).value) "1" else "0")
-      str.append(if (bits(i).critical) "*" else " ")
+      // str.append(if (bits(i).critical) "*" else " ")
     }
     str.toString()
   }
@@ -184,22 +184,30 @@ class SimulationBits(val width: Int, var producer: SimulationNode = null) {
     }
   }
 
-  def critical: Boolean = {
-    for (bit <- bits) {
-      if (bit.critical) {
-        return true
-      }
-    }
-    false
-  }
+  // def critical: Boolean = {
+  //   for (bit <- bits) {
+  //     if (bit.critical) {
+  //       return true
+  //     }
+  //   }
+  //   false
+  // }
 
   def depend(that: SimulationBits): Unit = {
     for (tbit <- that.bits) {
-      if (tbit.critical) {
-        for (bit <- that.bits) {
-          bit.depend(tbit)
-        }
+      // if (tbit.critical) {
+      for (bit <- bits) {
+        bit.depend(tbit)
       }
+      // }
     }
   }
+
+  // def criticalInputs: Set[SimulationNode] = {
+  //   var nodes = Set[SimulationNode]()
+  //   for (bit <- bits) {
+  //     nodes ++= bit.criticalInputs
+  //   }
+  //   nodes
+  // }
 }

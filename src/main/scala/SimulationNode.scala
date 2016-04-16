@@ -30,6 +30,13 @@ abstract class SimulationNode(val node: Node) {
   def postLinkSetup(simulation: Simulation): Unit = {
   }
 
+  /** Obtain the list of all SimulationBits associated with this node */
+  def getSimulationBits(): Set[SimulationBit] = {
+    val bits = Set[SimulationBit]()
+    bits ++= outputBits.bits.toSet
+    bits
+  }
+
   /**
    * Compute the value of this node's output.
    * The order of evaluation must obey combinatorial flow.
@@ -83,23 +90,28 @@ abstract class SimulationNode(val node: Node) {
     order < that.order
   }
 
-  def trackForward(): Unit = {
-    for (bit <- outputBits.bits) {
-      bit.trackForward()
-    }
-  }
+  // def trackForward(): Unit = {
+  //   for (bit <- outputBits.bits) {
+  //     bit.trackForward()
+  //   }
+  // }
 
-  def isTracked: Boolean = {
-    outputBits.critical
-  }
+  // def isTracked: Boolean = {
+  //   outputBits.critical
+  // }
 
-  def traceNodes(): Set[Node] = {
-    val traceSet = Set[SimulationNode](this)
-    for (bit <- outputBits.bits) {
-      if (bit.critical) {
-        traceSet ++= bit.traceSimulationNodes()
-      }
-    }
-    traceSet.map(_.node)
-  }
+  // def traceNodes(): Set[Node] = {
+  //   val traceSet = Set[SimulationNode](this)
+  //   for (bit <- outputBits.bits) {
+  //     if (bit.critical) {
+  //       traceSet ++= bit.traceSimulationNodes()
+  //     }
+  //   }
+  //   traceSet.map(_.node)
+  // }
+
+  // /** True if affector is a critical input. */
+  // def affectedBy(affector: SimulationNode): Boolean = {
+  //   return outputBits.criticalInputs.contains(affector)
+  // }
 }

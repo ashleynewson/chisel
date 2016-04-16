@@ -1,39 +1,4 @@
-function source_html(path) {
-    return "source_" + path + ".html";
-}
-
-var query = window.location.search.replace('?', '');
-var keyvals = query.split('&');
-var options = {};
-var i;
-for (i = 0; i < keyvals.length; i++) {
-    var keyval = keyvals[i].split('=');
-    options[decodeURIComponent(keyval[0])] = decodeURIComponent(keyval[1]);
-}
-
-var inst = [];
-if (typeof(options.inst) != "undefined") {
-    inst = options.inst.split("/");
-}
-
-var sliceDetails = slice;
-var humanInst = '<a href="source_' + slice.file + '.html">' + slice.file + '</a>';
-var instPath = null;
-for (i = 0; i < inst.length; i++) {
-    sliceDetails = sliceDetails.children[inst[i]];
-    if (instPath == null) {
-        instPath = inst[i];
-    } else {
-        instPath = instPath + '/' + inst[i];
-    }
-    // Should really escape the file names!
-    humanInst = humanInst + ":" + inst[i] + "/" + '<a href="' + source_html(sliceDetails.file) + '?inst=' + instPath + '">' + sliceDetails.file + '</a>';
-}
-
-document.getElementById("inst").innerHTML = humanInst;
-
-
-var sliceLines = sliceDetails.lines;
+var sliceLines = slicelet.lines;
 
 var source = document.getElementById("source").innerHTML;
 var lines = source.split('\n');
@@ -47,8 +12,8 @@ var links = [];
 for (i = 1; i < lines.length+1; i++) {
     links[i] = "";
 }
-for (var childPos in sliceDetails.children) {
-    if (sliceDetails.children.hasOwnProperty(childPos)) {
+for (var childPos in slicelet.children) {
+    if (slicelet.children.hasOwnProperty(childPos)) {
         var childPosSplit = childPos.split('_');
         var line = parseInt(childPosSplit[0]);
         var name = childPosSplit[1];
@@ -58,15 +23,30 @@ for (var childPos in sliceDetails.children) {
         } else {
             linkInstPath = instPath + '/' + childPos;
         }
-        links[line] += '<a href="' + source_html(sliceDetails.children[childPos].file) + '?inst=' + linkInstPath + '">' + name + '</a> ';
+        links[line] += '<a href="' + source_html(slicelet.children[childPos].file) + '?inst=' + linkInstPath + '">' + name + '</a> ';
+    }
+}
+for (var annotationPos in slicelet.annotations) {
+    if (slicelet.annotations.hasOwnProperty(annotationPos)) {
+        var annotationPosSplit = annotationPos.split('_');
+        var line = parseInt(annotationPosSplit[0]);
+        var name = annotationPosSplit[1];
+        var linkInstPath;
+        if (instPath == null) {
+            linkInstPath = annotationPos;
+        } else {
+            linkInstPath = instPath + '/' + annotationPos;
+        }
+        links[line] += '<a href="annotation.html?inst=' + linkInstPath + '">' + name + '</a> ';
     }
 }
 var margin = [];
 for (i = 1; i < lines.length+1; i++) {
     margin.push('<span>' + links[i] + i + '</span>');
 }
+
 var sourcePre = document.getElementById("source-pre");
-sourcePre.innerHTML = '<code class="numbering">' + margin.join('') + '</code>' + sourcePre.innerHTML + '<span style"clear:both;"></span>';
+sourcePre.innerHTML = '<code class="numbering">' + margin.join('') + '</code>' + sourcePre.innerHTML + '<span style="clear:both;"></span>';
 
 slicedSource = lines.join('\n');
 

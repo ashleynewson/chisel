@@ -1,18 +1,20 @@
 /*
- Copyright Ashley Newson 2016
- */
+  Copyright Ashley Newson 2016
+*/
 
 package Chisel
 
 import java.util.Base64
 import collection.mutable.Set
 
-class SimulationMem(node: Mem[_]) extends SimulationNode(node) with SimulationAnnotation {
-  override val clocked = true
+class SimulationROMData(node: ROMData) extends SimulationNode(node) with SimulationAnnotation {
+  override val clocked = false
+  val size = node.n
 
-  val data = new Array[SimulationBits](node.n)
-  for (i <- 0 to node.n-1) {
-    data(i) = new SimulationBits(node.width, this)
+  val data = new Array[SimulationBits](size)
+  for (i <- 0 to size-1) {
+    data(i) = new SimulationBits(node.width)
+    data(i).bigInt = if (node.sparseLits.contains(i)) node.sparseLits(i).value else 0
   }
 
   override def getSimulationBits(): Set[SimulationBit] = {
@@ -24,22 +26,7 @@ class SimulationMem(node: Mem[_]) extends SimulationNode(node) with SimulationAn
     bits
   }
 
-  // Need to revise the technicallity vs utility of this section.
   override def evaluate(): Unit = {
-    for (input <- inputs) {
-      val writer = input.asInstanceOf[SimulationMemWrite]
-
-      if (writer.inputs(1).output(0)) {
-        write(writer.inputs(0).output.int, writer.inputs(2).output)
-        data(writer.inputs(0).output.int).depend(inputs(0).output)
-        data(writer.inputs(0).output.int).depend(inputs(1).output)
-      }
-    }
-  }
-
-  // Need to revise the technicallity vs utility of this section.
-  def write(addr: Int, datum: SimulationBits): Unit = {
-    data(addr) := datum
   }
 
   def read(addr: Int): SimulationBits = {
