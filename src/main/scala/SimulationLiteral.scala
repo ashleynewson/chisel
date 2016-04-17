@@ -11,4 +11,6 @@ class SimulationLiteral(node: Literal) extends SimulationNode(node) {
 
   override def evaluate(): Unit = {
   }
+
+  override def annotationName: String = {"Literal"}
 }

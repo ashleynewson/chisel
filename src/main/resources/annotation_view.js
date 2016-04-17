@@ -19,7 +19,9 @@ function highlightBits(state, mask) {
     return bitString;
 }
 
-if (slicelet.type == "mem") {
+document.getElementById("title").innerHTML = slicelet.name;
+
+if (slicelet.type == "data") {
     output = "";
     state = window.atob(slicelet.state);
     mask = window.atob(slicelet.mask);

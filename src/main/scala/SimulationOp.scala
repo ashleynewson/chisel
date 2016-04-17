@@ -385,4 +385,6 @@ class SimulationOp(node: Op) extends SimulationNode(node) {
     }
     // System.err.println("Op " + node.line.getFileName() + ":" + node.line.getLineNumber() + " to " + output.toString())
   }
+
+  override def annotationName: String = {"Op " + node.op}
 }

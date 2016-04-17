@@ -6,6 +6,10 @@ pre .numbering, pre code,  {
     background: #0F0;
 }
 
+#content {
+    float: left;
+}
+
 pre .numbering {
     text-align: right;
     float: left;
@@ -22,7 +26,7 @@ pre .numbering span a {
 }
 
 pre {
-    overflow:auto;
+    /* overflow:auto; */
 }
 
 .in-slice {

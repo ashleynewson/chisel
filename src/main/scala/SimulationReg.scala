@@ -28,4 +28,6 @@ class SimulationReg(node: Reg) extends SimulationNode(node) {
     }
     // System.err.println("Reg " + node.line.getFileName() + ":" + node.line.getLineNumber() + " to " + output.toString())
   }
+
+  override def annotationName: String = {"Reg"}
 }

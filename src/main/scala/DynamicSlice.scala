@@ -163,12 +163,14 @@ class DynamicSliceBackend extends Backend with Slicer {
       }
 
       for (m <- top.nodes) {
-        val simulationNode = simulation.getSimulationNode(m)
-        simulationNode match {
-          case simulationAnnotation: SimulationAnnotation => {
-            annotationsJson += "\"%s_%s\":%s".format(m.line.getLineNumber(), m.name, simulationAnnotation.dumpJSON(sliceBits))
+        if (sliceNodes.contains(m)) {
+          val simulationNode = simulation.getSimulationNode(m)
+          simulationNode match {
+            case simulationAnnotation: SimulationAnnotation => {
+              annotationsJson += "\"%s_%s\":%s".format(m.line.getLineNumber(), m.name, simulationAnnotation.dumpJSON(sliceBits))
+            }
+            case _ => {}
           }
-          case _ => {}
         }
       }
 
@@ -426,10 +428,10 @@ class DynamicSliceBackend extends Backend with Slicer {
       outHtml.write("<script>var mode = 'source';</script>")
       outHtml.write("</head>")
       outHtml.write("<body>")
-      outHtml.write("<h1>" + escapedSourceName + "</h1>")
+      outHtml.write("<h1 id=\"title\">" + escapedSourceName + "</h1>")
       outHtml.write("<h2 id=\"inst\"></h2>")
       outHtml.write("<noscript>You must enable javascript to view the slice!</noscript>")
-      outHtml.write("<p><pre id=\"source-pre\"><code id=\"source\">" + escapedSource + "</code></pre></p>")
+      outHtml.write("<div id=\"content\"><p><pre id=\"source-pre\"><code id=\"source\">" + escapedSource + "</code></pre></p></div>")
       outHtml.write("<script src=\"highlight.pack.js\"></script>")
       outHtml.write("<script>hljs.initHighlightingOnLoad();</script>")
       outHtml.write("<script src=\"slice.js\"></script>")
@@ -453,10 +455,10 @@ class DynamicSliceBackend extends Backend with Slicer {
       outHtml.write("<script>var mode = 'annotation';</script>")
       outHtml.write("</head>")
       outHtml.write("<body>")
-      outHtml.write("<h1>(Annotation)</h1>")
+      outHtml.write("<h1 id=\"title\">(Annotation)</h1>")
       outHtml.write("<h2 id=\"inst\"></h2>")
       outHtml.write("<noscript>You must enable javascript to view the slice!</noscript>")
-      outHtml.write("<p><pre id=\"annotation-pre\"><code id=\"source\">...</code></pre></p>")
+      outHtml.write("<div id=\"content\"><p><pre id=\"annotation-pre\"><code id=\"source\">...</code></pre></p></div>")
       outHtml.write("<script src=\"slice.js\"></script>")
       outHtml.write("<script src=\"parsing.js\"></script>")
       outHtml.write("<script src=\"annotation_view.js\"></script>")

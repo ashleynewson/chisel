@@ -28,9 +28,8 @@ for (var childPos in slicelet.children) {
 }
 for (var annotationPos in slicelet.annotations) {
     if (slicelet.annotations.hasOwnProperty(annotationPos)) {
-        var annotationPosSplit = annotationPos.split('_');
-        var line = parseInt(annotationPosSplit[0]);
-        var name = annotationPosSplit[1];
+        var line = parseInt(annotationPos.substring(0, annotationPos.indexOf('_')));
+        var name = annotationPos.substring(annotationPos.indexOf('_')+1);
         var linkInstPath;
         if (instPath == null) {
             linkInstPath = annotationPos;

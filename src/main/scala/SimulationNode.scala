@@ -6,7 +6,7 @@ package Chisel
 
 import collection.mutable.{Map,Set}
 
-abstract class SimulationNode(val node: Node) {
+abstract class SimulationNode(val node: Node) extends SimulationAnnotation {
   /** Evaluation begins/ends at clocked nodes. */
   val width = node.width
   val clocked: Boolean
@@ -114,4 +114,27 @@ abstract class SimulationNode(val node: Node) {
   // def affectedBy(affector: SimulationNode): Boolean = {
   //   return outputBits.criticalInputs.contains(affector)
   // }
+
+  override def dumpJSON(sliceBits: Set[SimulationBit]): String = {
+    val builder = new StringBuilder()
+    builder.append("{")
+    builder.append("\"name\":\"" + annotationName + "\",")
+    builder.append("\"type\":\"data\",")
+    builder.append("\"width\":" + outputBits.width + ",")
+    builder.append("\"size\":1,")
+
+    {
+      builder.append("\"state\":\"")
+      appendBase64FromBits(builder, outputBits.width, 1, (word: Int, bit: Int) => {outputBits(bit)})
+      builder.append("\",")
+    }
+    {
+      builder.append("\"mask\":\"")
+      appendBase64FromBits(builder, outputBits.width, 1, (word: Int, bit: Int) => {sliceBits.contains(outputBits(bit))})
+      builder.append("\",")
+    }
+
+    builder.append("}")
+    builder.toString
+  }
 }

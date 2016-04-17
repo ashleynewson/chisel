@@ -31,4 +31,6 @@ class SimulationInput(node: Data) extends SimulationNode(node) {
     }
     // System.err.println("Set " + node.line.getFileName() + ":" + node.line.getLineNumber() + " to " + output.toString())
   }
+
+  override def annotationName: String = {"IO"}
 }
