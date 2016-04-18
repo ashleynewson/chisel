@@ -19,9 +19,14 @@ function highlightBits(state, mask) {
     return bitString;
 }
 
-document.getElementById("title").innerHTML = slicelet.name;
+var title = document.getElementById("title");
+var annotationPre = document.getElementById("annotation-pre");
 
-if (slicelet.type == "data") {
+if (slicelet.type == "bool") {
+    title.innerHTML = "Annotation";
+    annotationPre.innerHTML = "In slice?: " + (slicelet.slice ? "Yes" : "No");
+} else if (slicelet.type == "data") {
+    title.innerHTML = slicelet.name;
     output = "";
     state = window.atob(slicelet.state);
     mask = window.atob(slicelet.mask);
@@ -36,6 +41,5 @@ if (slicelet.type == "data") {
     for (i = 0; i < size; i++) {
         margin.push('<a name="' + i.toString(16) + '">0x' + i.toString(16) + '</a>');
     }
-    var annotationPre = document.getElementById("annotation-pre");
     annotationPre.innerHTML = '<code class="numbering">' + margin.join('') + '</code><code class="dump">' + output + '</code><span style="clear:both;"></span>';
 }

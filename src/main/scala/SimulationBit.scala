@@ -16,12 +16,12 @@ class SimulationBit(var value: Boolean, var producer: SimulationNode = null) {
 
   def :=(that: Boolean) {
     value = that
-    criticalInputs.clear()
+    clear()
   }
 
   def :=(that: SimulationBit) {
     value = that.value
-    criticalInputs.clear()
+    clear()
     criticalInputs ++= that.criticalInputs
     criticalInputs += that
   }
@@ -33,6 +33,8 @@ class SimulationBit(var value: Boolean, var producer: SimulationNode = null) {
 
   def clear() {
     criticalInputs.clear()
+    // criticalInputs.deend()
+    // criticalInputs = new AccumulatorSet[SimulationBit]()
   }
 
   def affectedBy(bit: SimulationBit): Boolean = {

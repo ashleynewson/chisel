@@ -185,6 +185,7 @@ class StaticSliceBackend extends Backend with Slicer {
     // Every line of source which is in the slice
     val sliceLines = SortedSet[Int]()
     val childrenJson = Set[String]()
+    val annotationsJson = Set[String]()
 
     for (child <- top.children) {
       if (! Driver.partitionIslands) {
@@ -206,8 +207,12 @@ class StaticSliceBackend extends Backend with Slicer {
       res.append(innercrossings)
 
       if (childSliceJson != null) {
-        sliceLines += child.instantiationLine.getLineNumber()
-        childrenJson += "\"%s_%s\":%s".format(child.instantiationLine.getLineNumber(), child.name, childSliceJson)
+        if (chiselMainLine.equals(child.instantiationLine)) {
+          childrenJson += "\"%s_%s\":%s".format("?", child.name, childSliceJson)
+        } else {
+          sliceLines += child.instantiationLine.getLineNumber()
+          childrenJson += "\"%s_%s\":%s".format(child.instantiationLine.getLineNumber(), child.name, childSliceJson)
+        }
       }
     }
 
@@ -219,6 +224,11 @@ class StaticSliceBackend extends Backend with Slicer {
       def usePort(n: Node) = n match {
         case mux: Mux => true
         case _ => false
+      }
+
+      for (m <- top.nodes) {
+        val lineStr = (if (chiselMainLine.equals(m.line)) "?" else m.line.getLineNumber())
+        annotationsJson += "\"%s_%s\":%s".format(lineStr, m.name, "{\"type\":\"bool\",\"slice\":" + (if (sliceNodes.contains(m)) 1 else 0) + "}")
       }
 
       for (m <- top.nodes) {
@@ -259,7 +269,9 @@ class StaticSliceBackend extends Backend with Slicer {
             }
 
             if (sliceNodes(m)) {
-              sliceLines += m.line.getLineNumber()
+              if (!chiselMainLine.equals(m.line)) {
+                sliceLines += m.line.getLineNumber()
+              }
             }
           }
         }
@@ -339,17 +351,18 @@ class StaticSliceBackend extends Backend with Slicer {
     }
 
     var sliceJson: String = null
-    if (sliceLines.size > 0) {
+    // if (sliceLines.size > 0) {
       requiredSourceFiles += top.constructorLine.getFileName
 
       val sliceJsonBuilder = new StringBuilder()
       sliceJsonBuilder.append("{")
       sliceJsonBuilder.append("\"file\":\"" + top.constructorLine.getFileName + "\",")
       sliceJsonBuilder.append("\"lines\":[" + sliceLines.mkString(",") + "],")
-      sliceJsonBuilder.append("\"children\":{" + childrenJson.mkString(",") + "}")
+      sliceJsonBuilder.append("\"children\":{" + childrenJson.mkString(",") + "},")
+      sliceJsonBuilder.append("\"annotations\":{" + annotationsJson.mkString(",") + "}")
       sliceJsonBuilder.append("}")
       sliceJson = sliceJsonBuilder.toString
-    }
+    // }
 
     (res.toString, crossings.toString, sliceJson)
   }
@@ -432,16 +445,43 @@ class StaticSliceBackend extends Backend with Slicer {
       outHtml.write("<title>" + escapedSourceName + " - Chisel Slice</title>")
       outHtml.write("<link rel=\"stylesheet\" href=\"styles/default.css\">")
       outHtml.write("<link rel=\"stylesheet\" href=\"styles/slice.css\">")
+      outHtml.write("<script>var mode = 'source';</script>")
       outHtml.write("</head>")
       outHtml.write("<body>")
-      outHtml.write("<h1>" + escapedSourceName + "</h1>")
+      outHtml.write("<h1 id=\"title\">" + escapedSourceName + "</h1>")
       outHtml.write("<h2 id=\"inst\"></h2>")
       outHtml.write("<noscript>You must enable javascript to view the slice!</noscript>")
-      outHtml.write("<p><pre id=\"source-pre\"><code id=\"source\">" + escapedSource + "</code></pre></p>")
+      outHtml.write("<div id=\"content\"><p><pre id=\"source-pre\"><code id=\"source\">" + escapedSource + "</code></pre></p></div>")
       outHtml.write("<script src=\"highlight.pack.js\"></script>")
       outHtml.write("<script>hljs.initHighlightingOnLoad();</script>")
       outHtml.write("<script src=\"slice.js\"></script>")
+      outHtml.write("<script src=\"parsing.js\"></script>")
       outHtml.write("<script src=\"slice_view.js\"></script>")
+      outHtml.write("</body>")
+
+      outHtml.write("</html>\n")
+      outHtml.close()
+    }
+
+    // Create the HTML page for annotations
+    {
+      val outHtml = createOutputFile(basedir + "/annotation.html")
+      outHtml.write("<!DOCTYPE html>\n<html>")
+
+      outHtml.write("<head>")
+      outHtml.write("<meta charset=\"UTF-8\">")
+      outHtml.write("<title>Annotation - Chisel Slice</title>")
+      outHtml.write("<link rel=\"stylesheet\" href=\"styles/slice.css\">")
+      outHtml.write("<script>var mode = 'annotation';</script>")
+      outHtml.write("</head>")
+      outHtml.write("<body>")
+      outHtml.write("<h1 id=\"title\">(Annotation)</h1>")
+      outHtml.write("<h2 id=\"inst\"></h2>")
+      outHtml.write("<noscript>You must enable javascript to view the slice!</noscript>")
+      outHtml.write("<div id=\"content\"><p><pre id=\"annotation-pre\"><code id=\"source\">...</code></pre></p></div>")
+      outHtml.write("<script src=\"slice.js\"></script>")
+      outHtml.write("<script src=\"parsing.js\"></script>")
+      outHtml.write("<script src=\"annotation_view.js\"></script>")
       outHtml.write("</body>")
 
       outHtml.write("</html>\n")
@@ -461,6 +501,8 @@ class StaticSliceBackend extends Backend with Slicer {
     outHtml.write("</html>\n")
     outHtml.close()
 
+    copyToTarget("parsing.js", basedir + "/parsing.js")
+    copyToTarget("annotation_view.js", basedir + "/annotation_view.js")
     copyToTarget("slice_view.js", basedir + "/slice_view.js")
     copyToTarget("highlight.pack.js", basedir + "/highlight.pack.js")
     copyToTarget("default.css", basedir + "/styles/default.css")

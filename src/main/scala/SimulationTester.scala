@@ -23,7 +23,7 @@ class SimulationTester(module: Module, simulation: Simulation) {
   }
 
   def poke(data: Bits, x: Boolean): Unit = {
-    simulation.getSimulationNode(data).output.int != 0
+    simulation.getSimulationNode(data).output(0) = x
   }
   def poke(data: Bits, x: Int): Unit = {
     simulation.getSimulationNode(data).output.int = x

@@ -17,5 +17,5 @@ class SimulationExtract(node: Extract) extends SimulationNode(node) {
     }
   }
 
-  override def annotationName: String = {"Extract"}
+  override def annotationName: String = {"Extract " + inputsString}
 }

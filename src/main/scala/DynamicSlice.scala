@@ -147,8 +147,12 @@ class DynamicSliceBackend extends Backend with Slicer {
       res.append(innercrossings)
 
       if (childSliceJson != null) {
-        sliceLines += child.instantiationLine.getLineNumber()
-        childrenJson += "\"%s_%s\":%s".format(child.instantiationLine.getLineNumber(), child.name, childSliceJson)
+        if (chiselMainLine.equals(child.instantiationLine)) {
+          childrenJson += "\"%s_%s\":%s".format("?", child.name, childSliceJson)
+        } else {
+          sliceLines += child.instantiationLine.getLineNumber()
+          childrenJson += "\"%s_%s\":%s".format(child.instantiationLine.getLineNumber(), child.name, childSliceJson)
+        }
       }
     }
 
@@ -163,15 +167,16 @@ class DynamicSliceBackend extends Backend with Slicer {
       }
 
       for (m <- top.nodes) {
-        if (sliceNodes.contains(m)) {
+        val lineStr = (if (chiselMainLine.equals(m.line)) "?" else m.line.getLineNumber())
+        // if (sliceNodes.contains(m)) {
           val simulationNode = simulation.getSimulationNode(m)
           simulationNode match {
             case simulationAnnotation: SimulationAnnotation => {
-              annotationsJson += "\"%s_%s\":%s".format(m.line.getLineNumber(), m.name, simulationAnnotation.dumpJSON(sliceBits))
+              annotationsJson += "\"%s_%s\":%s".format(lineStr, m.name, simulationAnnotation.dumpJSON(sliceBits))
             }
             case _ => {}
           }
-        }
+        // }
       }
 
       for (m <- top.nodes) {
@@ -214,7 +219,9 @@ class DynamicSliceBackend extends Backend with Slicer {
             }
 
             if (sliceNodes(m)) {
-              sliceLines += m.line.getLineNumber()
+              if (!chiselMainLine.equals(m.line)) {
+                sliceLines += m.line.getLineNumber()
+              }
             }
           }
         }
@@ -294,7 +301,7 @@ class DynamicSliceBackend extends Backend with Slicer {
     }
 
     var sliceJson: String = null
-    if (sliceLines.size > 0) {
+    // if (sliceLines.size > 0) {
       requiredSourceFiles += top.constructorLine.getFileName
 
       val sliceJsonBuilder = new StringBuilder()
@@ -305,7 +312,7 @@ class DynamicSliceBackend extends Backend with Slicer {
       sliceJsonBuilder.append("\"annotations\":{" + annotationsJson.mkString(",") + "}")
       sliceJsonBuilder.append("}")
       sliceJson = sliceJsonBuilder.toString
-    }
+    // }
 
     (res.toString, crossings.toString, sliceJson)
   }

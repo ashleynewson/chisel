@@ -13,5 +13,5 @@ class SimulationBuffer(node: Node) extends SimulationNode(node) {
     outputBits = inputs(0).output
   }
 
-  override def annotationName: String = {"Data"}
+  override def annotationName: String = {"Data " + inputsString}
 }

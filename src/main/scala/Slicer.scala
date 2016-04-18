@@ -7,6 +7,11 @@ package Chisel
 import collection.mutable.Set
 
 trait Slicer {
+  val chiselMainLine = {
+    val trace = new Throwable().getStackTrace
+    ChiselError.findFirstUserLine(trace) getOrElse trace(0)
+  }
+
   object Criterion {
     object Direction extends Enumeration {
       val None, Forward, Backward = Value
@@ -24,15 +29,20 @@ trait Slicer {
       def apply(positionStr: String): Position = {
         val parts = positionStr.split(":")
         parts.size match {
-          case 2 => new Position(parts(0), parts(1).toInt)
-          case 3 => new Position(parts(0), parts(1).toInt, Some(parts(2).toInt))
+          case 2 => new Position(parts(0), parts(1))
+          case 3 => new Position(parts(0), parts(1), Some(parts(2).toInt))
           case _ => {ChiselError.error("Invalid source position: " + positionStr); null}
         }
       }
     }
-    class Position(val filename: String, val line: Int, val address: Option[Int] = None) {
-      def ==(that: StackTraceElement): Boolean = {
-        that != null && (filename == that.getFileName() && line == that.getLineNumber())
+    class Position(val filename: String, lineAndName: String, val address: Option[Int] = None) {
+      val line: Int = {if (lineAndName.indexOf("_") == -1) lineAndName.toInt else lineAndName.substring(0, lineAndName.indexOf("_")).toInt}
+      val name: String = {if (lineAndName.indexOf("_") == -1) null else lineAndName.substring(lineAndName.indexOf("_") + 1)}
+      // def ==(that: StackTraceElement): Boolean = {
+      //   that != null && (filename == that.getFileName() && line == that.getLineNumber())
+      // }
+      def matches(that: StackTraceElement, thatName: String): Boolean = {
+        that != null && (filename == that.getFileName() && line == that.getLineNumber()) && (if (name != null && thatName != null) (name == thatName) else true)
       }
     }
 
@@ -61,14 +71,15 @@ trait Slicer {
       if (nextPositions == Nil) {
         // Were looking for a node.
         for (node <- top.nodes) {
-          if (position == node.line) {
+          // if (position == node.line) {
+          if (position.matches(node.line, node.name)) {
             found += node
           }
         }
       } else {
         // Were looking for a module instantiation.
         for (subModule <- top.children) {
-          if (position == subModule.instantiationLine) {
+          if (position.matches(subModule.instantiationLine, subModule.name)) {
             found ++= findNode(subModule, nextPositions)
           }
         }

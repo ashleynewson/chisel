@@ -12,10 +12,12 @@ var links = [];
 for (i = 1; i < lines.length+1; i++) {
     links[i] = "";
 }
+// extraLinks are for items without line association
+var extraLinks = "";
+
 for (var childPos in slicelet.children) {
     if (slicelet.children.hasOwnProperty(childPos)) {
         var childPosSplit = childPos.split('_');
-        var line = parseInt(childPosSplit[0]);
         var name = childPosSplit[1];
         var linkInstPath;
         if (instPath == null) {
@@ -23,12 +25,17 @@ for (var childPos in slicelet.children) {
         } else {
             linkInstPath = instPath + '/' + childPos;
         }
-        links[line] += '<a href="' + source_html(slicelet.children[childPos].file) + '?inst=' + linkInstPath + '">' + name + '</a> ';
+        var link = '<a href="' + source_html(slicelet.children[childPos].file) + '?inst=' + linkInstPath + '">' + name + '</a> ';
+        if (childPosSplit[0] === "?") {
+            extraLinks += link;
+        } else {
+            var line = parseInt(childPosSplit[0]);
+            links[line] += link;
+        }
     }
 }
 for (var annotationPos in slicelet.annotations) {
     if (slicelet.annotations.hasOwnProperty(annotationPos)) {
-        var line = parseInt(annotationPos.substring(0, annotationPos.indexOf('_')));
         var name = annotationPos.substring(annotationPos.indexOf('_')+1);
         var linkInstPath;
         if (instPath == null) {
@@ -36,7 +43,14 @@ for (var annotationPos in slicelet.annotations) {
         } else {
             linkInstPath = instPath + '/' + annotationPos;
         }
-        links[line] += '<a href="annotation.html?inst=' + linkInstPath + '">' + name + '</a> ';
+        var lineStr = annotationPos.substring(0, annotationPos.indexOf('_'));
+        var link = '<a href="annotation.html?inst=' + linkInstPath + '">' + name + '</a> ';
+        if (lineStr === "?") {
+            extraLinks += link;
+        } else {
+            var line = parseInt(lineStr);
+            links[line] += link;
+        }
     }
 }
 var margin = [];
@@ -46,6 +60,11 @@ for (i = 1; i < lines.length+1; i++) {
 
 var sourcePre = document.getElementById("source-pre");
 sourcePre.innerHTML = '<code class="numbering">' + margin.join('') + '</code>' + sourcePre.innerHTML + '<span style="clear:both;"></span>';
+
+if (extraLinks != "") {
+    var content = document.getElementById("content");
+    content.innerHTML += '<p>The following items could not be associated with lines in the file:<br>' + extraLinks + '</p';
+}
 
 slicedSource = lines.join('\n');
 

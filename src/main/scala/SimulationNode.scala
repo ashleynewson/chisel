@@ -18,6 +18,8 @@ abstract class SimulationNode(val node: Node) extends SimulationAnnotation {
   var clockSetReady = false
   var forwardTracked = false
 
+  def inputsString = " (" + node.inputs.map(_.name).mkString(", ") + ")"
+
   // It may be useful to make groups evaluate together to aid memory cache hits...
   // Not prematurely optimising for now.
 

@@ -12,5 +12,5 @@ class SimulationOutput(node: Data) extends SimulationNode(node) {
     // System.err.println("Output " + node.line.getFileName() + ":" + node.line.getLineNumber() + " is " + output.toString())
   }
 
-  override def annotationName: String = {"IO"}
+  override def annotationName: String = {"IO " + inputsString}
 }
