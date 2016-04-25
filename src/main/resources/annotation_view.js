@@ -23,8 +23,8 @@ var title = document.getElementById("title");
 var annotationPre = document.getElementById("annotation-pre");
 
 if (slicelet.type == "bool") {
-    title.innerHTML = "Annotation";
-    annotationPre.innerHTML = "In slice?: " + (slicelet.slice ? "Yes" : "No");
+    title.innerHTML = slicelet.name;
+    annotationPre.innerHTML = "In slice?: " + (slicelet.in ? "Yes" : "No");
 } else if (slicelet.type == "data") {
     title.innerHTML = slicelet.name;
     output = "";

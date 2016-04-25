@@ -11,30 +11,47 @@ object SimulationBit {
 }
 
 class SimulationBit(var value: Boolean, var producer: SimulationNode = null) {
-  var criticalInputs = Set[SimulationBit]()
+  var criticalInputs = new AccumulatorSet[SimulationBit]()
   var inSlice = true
 
   def :=(that: Boolean) {
     value = that
-    clear()
+    if (Driver.traceSimulation) {
+      clear()
+    }
   }
 
   def :=(that: SimulationBit) {
     value = that.value
-    clear()
-    criticalInputs ++= that.criticalInputs
-    criticalInputs += that
+    if (Driver.traceSimulation) {
+      clear()
+      criticalInputs ++= that.criticalInputs
+      criticalInputs += that
+    }
   }
 
   def depend(input: SimulationBit) {
-    criticalInputs ++= input.criticalInputs
-    criticalInputs += input
+    if (Driver.traceSimulation) {
+      criticalInputs ++= input.criticalInputs
+      criticalInputs += input
+    }
+  }
+
+  def unfreeze_trace() {
+    criticalInputs.unpreserve()
+  }
+
+  def freeze_trace() {
+    criticalInputs.preserve()
   }
 
   def clear() {
-    criticalInputs.clear()
-    // criticalInputs.deend()
-    // criticalInputs = new AccumulatorSet[SimulationBit]()
+    // criticalInputs.clear()
+    if (Driver.traceSimulation) {
+      criticalInputs.freeze()
+      criticalInputs.collapse()
+      criticalInputs = new AccumulatorSet[SimulationBit]()
+    }
   }
 
   def affectedBy(bit: SimulationBit): Boolean = {

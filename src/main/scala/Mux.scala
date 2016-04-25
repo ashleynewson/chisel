@@ -66,18 +66,34 @@ object MuxCase {
 object Multiplex {
   /** muliplex between nodes with if (t != 0) c else a */
   def apply (t: Node, c: Node, a: Node): Node = {
-    t.litOpt match { 
-      case Some(tl) => if (tl.value == 0) a else c 
-      case None if a != null => (c.litOpt, a.litOpt) match {
-        case (_, Some(al)) if a.isInstanceOf[Mux] && t._isComplementOf(a.inputs(0)) =>
-          Multiplex(t, c, a.inputs(1))
-        case (Some(cl), Some(al)) if cl.value == al.value => c
-        case (Some(cl), Some(al)) if cl.isKnownWidth && al.isKnownWidth &&
-             cl.widthW.needWidth() == 1 && al.widthW.needWidth() == 1 =>
-          if (cl.value == 0) LogicalOp(t, Literal(0,1), "===") else t
+    if (Driver.refineNodeStructure) {
+      t.litOpt match { 
+        case Some(tl) => if (tl.value == 0) a else c 
+        case None if a != null => (c.litOpt, a.litOpt) match {
+          case (_, Some(al)) if a.isInstanceOf[Mux] && t._isComplementOf(a.inputs(0)) =>
+            Multiplex(t, c, a.inputs(1))
+          case (Some(cl), Some(al)) if cl.value == al.value => c
+          case (Some(cl), Some(al)) if cl.isKnownWidth && al.isKnownWidth &&
+            cl.widthW.needWidth() == 1 && al.widthW.needWidth() == 1 =>
+            if (cl.value == 0) LogicalOp(t, Literal(0,1), "===") else t
+          case _ => new Mux().init("", Node.maxWidth _, t, c, a)
+        }
         case _ => new Mux().init("", Node.maxWidth _, t, c, a)
       }
-      case _ => new Mux().init("", Node.maxWidth _, t, c, a)
+    } else {
+      t.litOpt match { 
+        // Needed to satisfy defaultness
+        case Some(tl) => {
+          if (tl.value == 0) {
+            Buffer(a)
+            // new Mux().init("", Node.maxWidth _, t, a, a)
+          } else {
+            Buffer(c)
+            // new Mux().init("", Node.maxWidth _, t, c, c)
+          }
+        }
+        case _ => new Mux().init("", Node.maxWidth _, t, c, a)
+      }
     }
   }
 }

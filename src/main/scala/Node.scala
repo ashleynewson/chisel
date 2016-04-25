@@ -36,24 +36,37 @@ object Node {
   /* With more effort, this could be more precise. */
   class TrackingArrayBuffer[A] extends ArrayBuffer[A] {
     /** Tracks which lines in the source code define input connections */
-    val lineMap = collection.mutable.Map[A, collection.mutable.Set[StackTraceElement]]()
-    private def addSTE(elem: A): Unit = {
+    // val lineMap = collection.mutable.Map[A, collection.mutable.Set[StackTraceElement]]()
+    val lines = ArrayBuffer[StackTraceElement]()
+    private def getSTE(): StackTraceElement = {
       val trace = new Throwable().getStackTrace
       val chiselTrace = ChiselError.findFirstUserLine(trace) getOrElse null
-      if (chiselTrace != null) {
-        if (lineMap.contains(elem)) {
-          lineMap(elem) += chiselTrace
-        } else {
-          lineMap(elem) = collection.mutable.Set(chiselTrace)
-        }
-      }
+      chiselTrace
+    }
+    // private def addSTE(elem: A): Unit = {
+    //   val trace = new Throwable().getStackTrace
+    //   val chiselTrace = ChiselError.findFirstUserLine(trace) getOrElse null
+    //   if (chiselTrace != null) {
+    //     if (lineMap.contains(elem)) {
+    //       lineMap(elem) += chiselTrace
+    //     } else {
+    //       lineMap(elem) = collection.mutable.Set(chiselTrace)
+    //     }
+    //   }
+    // }
+    override def clear() = {
+      // lineMap.clear()
+      lines.clear()
+      super.clear()
     }
     override def += (elem: A) = {
-      addSTE(elem)
+      // addSTE(elem)
+      lines += getSTE()
       super.$plus$eq(elem)
     }
     override def update (idx: Int, elem: A) = {
-      addSTE(elem)
+      // addSTE(elem)
+      lines.update(idx, getSTE())
       super.update(idx, elem)
     }
   }
@@ -201,11 +214,12 @@ abstract class Node extends Nameable {
   /** nodes that consume one of my outputs */
   val consumers = LinkedHashSet[Node]()
   /** The trace information for chisel for this node */
-  val line: StackTraceElement =
+  var line: StackTraceElement =
     if (Driver.getLineNumbers) {
       val trace = new Throwable().getStackTrace
       ChiselError.findFirstUserLine(trace) getOrElse trace(0)
     } else null
+
   /** The unique id of this node */
   val _id = Driver.getNodeId 
 
@@ -415,10 +429,13 @@ abstract class Node extends Nameable {
       val match_width = w.needWidth()
       if (match_width > my_width) {
         val zero = Literal(0, match_width - my_width); zero.infer
+        zero.line = line
         val res = Concatenate(zero, this); res.infer
+        res.line = line
         res
       } else if (match_width < my_width) {
         val res = NodeExtract(this, match_width-1,0); res.infer
+        res.line = line
         res
       } else {
         this
@@ -582,4 +599,8 @@ abstract class Node extends Nameable {
   }
 
   def getSimulationNode(): SimulationNode = {assert(false, ChiselError.error("Simulation does not support this node: " + getClass())); new SimulationBuffer(this)}
+
+  def inputsString: String = "(" + inputs.map(_.name).mkString(", ") + ")"
+
+  def annotationName: String = this.getClass.getSimpleName + inputsString
 }

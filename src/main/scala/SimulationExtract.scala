@@ -16,6 +16,4 @@ class SimulationExtract(node: Extract) extends SimulationNode(node) {
       outputBits(i - lo) := inputs(0).output(i)
     }
   }
-
-  override def annotationName: String = {"Extract " + inputsString}
 }

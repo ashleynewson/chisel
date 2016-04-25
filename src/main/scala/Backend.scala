@@ -327,7 +327,8 @@ class Backend extends FileSystemUtilities{
           case io: Bits if io.isIo && io.dir == INPUT => p.parent
           case _ => p
         }
-        if (!node.isTypeNode || !Driver.refineNodeStructure) p.nodes += node
+        if (!node.isTypeNode) p.nodes += node
+        // if (!node.isTypeNode || !Driver.refineNodeStructure) p.nodes += node
         node.inputs filterNot (_.isTypeNode) foreach (input => input.compOpt match {
           case None => input.compOpt = Some(curComp)
           case Some(q) => if (p != q && !input.isLit &&
@@ -596,12 +597,27 @@ class Backend extends FileSystemUtilities{
     Driver.bfs {x =>
       // If this a UInt literal, generate a Chisel error.
       // Issue #168 - lit as port breaks chisel
-      if (x.isTypeNode) {
+      if (Driver.refineNodeStructure && x.isTypeNode) {
         ChiselError.error("Real node required here, but 'type' node found - did you neglect to insert a node with a direction?", x.line)
       }
       count += 1
-      for ((input, i) <- x.inputs.zipWithIndex if input.isTypeNode) {
-        x.inputs(i) = input.getNode
+      for ((input, i) <- x.inputs.zipWithIndex if (input.isTypeNode)) {
+        // if (Driver.refineNodeStructure) {
+          x.inputs(i) = input.getNode
+        // } else {
+        //   var connection: Node = input
+        //   var it: Node = input
+        //   while (it.isTypeNode && !it.inputs.isEmpty) {
+        //     while (it.inputs(0).compOpt.isEmpty) {
+        //       it.inputs(0) = it.inputs(0).inputs(0)
+        //     }
+        //     it = it.inputs(0)
+        //     if (connection.compOpt.isEmpty) {
+        //       connection = it
+        //     }
+        //   }
+        //   x.inputs(i) = connection
+        // }
       }
     }
     count
@@ -836,7 +852,55 @@ class Backend extends FileSystemUtilities{
     }
   }
 
+  /* Add data node between node and its inputs */
+  def interceptInput(module: Module, node: Node): Unit = {
+    val inputs = node.inputs.asInstanceOf[Node.TrackingArrayBuffer[Node]]
+    for (inputNo <- 0 until inputs.size) {
+      val inNode = inputs(inputNo)
+      val inLine = inputs.lines(inputNo)
+      val value: BigInt = inNode match {
+        case v: Literal => v.asInstanceOf[Literal].value
+        case _ => 0
+      }
+      val newNode = UInt(value, inNode.width)
+      inNode.consumers -= node
+      inNode.consumers += newNode
+      newNode.inputs(0) = inNode
+      newNode.line = inLine
+      newNode.consumers += node
+      node.inputs(inputNo) = newNode
+      module.addNode(newNode)
+    }
+  }
+  /* Add data nodes between most nodes, representing their inputs */
+  def interceptInputs(top: Module): Unit = {
+    Driver.compStack.push(top)
+    for (module <- top.children) {
+      interceptInputs(module)
+    }
+    for (node <- top.nodes.clone()) {
+      node match {
+        case n: Reg => interceptInput(top, n)
+        case n: Data => interceptInput(top, n)
+        case _ => ()
+      }
+    }
+    Driver.compStack.pop()
+  }
+
   def elaborate(c: Module): Unit = {
+    // Driver.orderedNodes.foreach((x) => x match {
+    //   case _: Literal => (System.err.println("YUP!"))
+    //   case _ => ()
+    // })
+    // c.nodes.foreach((x) => x match {
+    //   case _: Literal => (System.err.println("YUP!"))
+    //   case _ => ()
+    // })
+    // Driver.idfs((x) => x match {
+    //   case y: Literal => (System.err.println(y.line))
+    //   case _ => ()
+    // })
     ChiselError.checkpoint()
     ChiselError.info("// COMPILING " + c + "(" + c.children.size + ")");
     sortComponents
@@ -879,13 +943,13 @@ class Backend extends FileSystemUtilities{
       ChiselError.info("eliminating W0W (post width check)")
       W0Wtransform
     }
-    if (Driver.refineNodeStructure) {
-      ChiselError.info("lowering complex nodes to primitives")
-      lowerNodes(c)
-      ChiselError.info("removing type nodes")
-      val nbNodes = removeTypeNodes(c)
-      ChiselError.info("compiling %d nodes".format(nbNodes))
-    }
+    ChiselError.info("lowering complex nodes to primitives")
+    lowerNodes(c)
+    // if (Driver.refineNodeStructure) {
+    ChiselError.info("removing type nodes")
+    val nbNodes = removeTypeNodes(c)
+    ChiselError.info("compiling %d nodes".format(nbNodes))
+    // }
     ChiselError.checkpoint()
 
     ChiselError.info("computing memory ports")
@@ -938,6 +1002,10 @@ class Backend extends FileSystemUtilities{
       ChiselError.checkpoint()
       ChiselError.info("NO COMBINATIONAL LOOP FOUND")
     }
+
+    // if (!Driver.refineNodeStructure) {
+    //   interceptInputs(c)
+    // }
 
     if (Driver.saveComponentTrace) {
       printStack

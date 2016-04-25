@@ -16,6 +16,8 @@ class Simulation(val topModule: Module) {
 
   private val simulationBits = Set[SimulationBit]()
 
+  private var cycles = 0
+
   var reset: Boolean = true
 
   addSimulationNodes(topModule)
@@ -35,6 +37,11 @@ class Simulation(val topModule: Module) {
   for (simulationNode <- nodeMap.values) {
     simulationBits ++= simulationNode.getSimulationBits()
   }
+  // {
+  //   var clocked = 0
+  //   nodeMap.values.foreach((x) => (if (x.clocked) (clocked+=1)))
+  //   System.err.println("Clocked: " + clocked + "/" + nodeMap.size)
+  // }
 
   private def findSimulationClocks(): Unit = {
     for (simulationNode <- nodeMap.values) {
@@ -111,6 +118,22 @@ class Simulation(val topModule: Module) {
     for (simulationClock <- simulationClocks) {
       if (simulationClock.remaining < nextClockToTick.remaining) {
         nextClockToTick = simulationClock
+      }
+    }
+    cycles += 1
+    if (cycles % 32 == 0) {
+      flattenTraces()
+    }
+  }
+
+  def flattenTraces(): Unit = {
+    if (Driver.traceSimulation) {
+      for (bit <- simulationBits) {
+        bit.freeze_trace()
+      }
+      AccumulatorSet.flattenAll()
+      for (bit <- simulationBits) {
+        bit.unfreeze_trace()
       }
     }
   }

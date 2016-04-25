@@ -46,7 +46,11 @@ object when {
   // TODO: make private[Chisel]?
   /** Execute a when block - internal do not use */
   def execWhen(cond: Bool)(block: => Unit) {
-    Module.current.whenConds.push(Module.current.whenCond && cond)
+    if (Driver.refineNodeStructure) {
+      Module.current.whenConds.push(Module.current.whenCond && cond)
+    } else {
+      Module.current.whenConds.push(Module.current.whenCond && Buffer(cond))
+    }
     block
     Module.current.whenConds.pop()
   }
@@ -95,7 +99,11 @@ object unless {
   * } }}}*/
 object switch {
   def apply(c: Bits)(block: => Unit) {
-    Module.current.switchKeys.push(c)
+    if (Driver.refineNodeStructure) {
+      Module.current.switchKeys.push(c)
+    } else {
+      Module.current.switchKeys.push(Buffer(c))
+    }
     block
     Module.current.switchKeys.pop()
   }

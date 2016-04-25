@@ -11,6 +11,7 @@ trait Slicer {
     val trace = new Throwable().getStackTrace
     ChiselError.findFirstUserLine(trace) getOrElse trace(0)
   }
+  
 
   object Criterion {
     object Direction extends Enumeration {

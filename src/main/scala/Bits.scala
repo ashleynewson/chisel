@@ -299,7 +299,9 @@ abstract class Bits extends Data with proc {
   override def matchWidth(w: Width): Node = {
     if (w.isKnown && isLit && !litOf.isZ) {
       val wi = w.needWidth()   // TODO 0WW
-      Literal(litOf.value & ((BigInt(1) << wi)-1), wi)
+      val lit = Literal(litOf.value & ((BigInt(1) << wi)-1), wi)
+      lit.line = litOf.line
+      lit
     }
     else super.matchWidth(w)
   }

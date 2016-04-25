@@ -599,6 +599,8 @@ abstract class Op extends Node {
   override def getSimulationNode(): SimulationNode = {
     new SimulationOp(this)
   }
+
+  override def annotationName: String = {"Op " + op + inputsString}
 }
 
 case class LogicalOp(val op: String) extends Op

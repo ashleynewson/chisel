@@ -8,8 +8,6 @@ import java.util.Base64
 import collection.mutable.Set
 
 trait SimulationAnnotation {
-  def annotationName: String = {""}
-
   def appendBase64FromBits(builder: StringBuilder, width: Int, n: Int, fn: (Int, Int) => Boolean): Unit = {
     var encodingBit: Int = 0
     var binData = Array[Byte](0, 0, 0)
@@ -35,6 +33,8 @@ trait SimulationAnnotation {
       builder.append(base64enc.encodeToString(binData.slice(0, (encodingBit + 7) / 8)))
     }
   }
+
+  def isInSlice(sliceBits: Set[SimulationBit]): Boolean
 
   def dumpJSON(sliceBits: Set[SimulationBit]): String
 }

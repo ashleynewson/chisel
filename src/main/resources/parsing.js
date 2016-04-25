@@ -30,6 +30,11 @@ for (i = 0; i < inst.length; i++) {
             slicelet = slicelet.children[inst[i]];
         }
     }
+    if (typeof(slicelet) === "undefined") {
+        document.getElementById("inst").innerHTML = '<a href="' + source_html(slice.file) + '">Return to top</a> - <a href="index.html">Return to start page</a>';
+        alert("The design location is invalid. Perhaps your code has changed? Try navigating down from the top again.");
+        throw "Path invalid";
+    }
     if (instPath == null) {
         instPath = inst[i];
     } else {

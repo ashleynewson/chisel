@@ -18,8 +18,6 @@ abstract class SimulationNode(val node: Node) extends SimulationAnnotation {
   var clockSetReady = false
   var forwardTracked = false
 
-  def inputsString = " (" + node.inputs.map(_.name).mkString(", ") + ")"
-
   // It may be useful to make groups evaluate together to aid memory cache hits...
   // Not prematurely optimising for now.
 
@@ -117,11 +115,16 @@ abstract class SimulationNode(val node: Node) extends SimulationAnnotation {
   //   return outputBits.criticalInputs.contains(affector)
   // }
 
+  override def isInSlice(sliceBits: Set[SimulationBit]): Boolean = {
+    outputBits.isInSlice(sliceBits)
+  }
+
   override def dumpJSON(sliceBits: Set[SimulationBit]): String = {
     val builder = new StringBuilder()
     builder.append("{")
-    builder.append("\"name\":\"" + annotationName + "\",")
+    builder.append("\"name\":\"" + node.annotationName + "\",")
     builder.append("\"type\":\"data\",")
+    builder.append("\"in\":" + isInSlice(sliceBits) + ",")
     builder.append("\"width\":" + outputBits.width + ",")
     builder.append("\"size\":1,")
 

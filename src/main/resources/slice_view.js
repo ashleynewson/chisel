@@ -1,19 +1,25 @@
-var sliceLines = slicelet.lines;
-
-var source = document.getElementById("source").innerHTML;
-var lines = source.split('\n');
-
-for (i = 0; i < sliceLines.length; i++) {
-    var lineNo = sliceLines[i] - 1; // 1 indexing to 0 indexing
-    lines[lineNo] = '<span class="in-slice">' + lines[lineNo] + '</span>';
-}
-
 var links = [];
-for (i = 1; i < lines.length+1; i++) {
-    links[i] = "";
+
+function addLink(line, html) {
+    if (typeof(links[line]) != "undefined") {
+        links[line] += html;
+    } else {
+        links[line] = html;
+    }
 }
+
+function getLinks(line) {
+    if (typeof(links[line]) != "undefined") {
+        return links[line];
+    } else {
+        return "";
+    }
+}
+
 // extraLinks are for items without line association
 var extraLinks = "";
+
+var sliceLines = [];
 
 for (var childPos in slicelet.children) {
     if (slicelet.children.hasOwnProperty(childPos)) {
@@ -30,13 +36,19 @@ for (var childPos in slicelet.children) {
             extraLinks += link;
         } else {
             var line = parseInt(childPosSplit[0]);
-            links[line] += link;
+            addLink(line, link);
+            if (slicelet.children[childPos].in) {
+                sliceLines.push(line);
+            }
         }
     }
 }
 for (var annotationPos in slicelet.annotations) {
     if (slicelet.annotations.hasOwnProperty(annotationPos)) {
         var name = annotationPos.substring(annotationPos.indexOf('_')+1);
+        if (name == "") {
+            name = "?";
+        }
         var linkInstPath;
         if (instPath == null) {
             linkInstPath = annotationPos;
@@ -49,13 +61,27 @@ for (var annotationPos in slicelet.annotations) {
             extraLinks += link;
         } else {
             var line = parseInt(lineStr);
-            links[line] += link;
+            addLink(line, link);
+            if (slicelet.annotations[annotationPos].in) {
+                sliceLines.push(line);
+            }
         }
     }
 }
+
+// var sliceLines = slicelet.lines;
+
+var source = document.getElementById("source").innerHTML;
+var lines = source.split('\n');
+
+for (i = 0; i < sliceLines.length; i++) {
+    var lineNo = sliceLines[i] - 1; // 1 indexing to 0 indexing
+    lines[lineNo] = '<span class="in-slice">' + lines[lineNo] + '</span>';
+}
+
 var margin = [];
 for (i = 1; i < lines.length+1; i++) {
-    margin.push('<span>' + links[i] + i + '</span>');
+    margin.push('<span>' + getLinks(i) + i + '</span>');
 }
 
 var sourcePre = document.getElementById("source-pre");

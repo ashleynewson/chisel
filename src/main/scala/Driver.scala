@@ -506,6 +506,7 @@ object Driver extends FileSystemUtilities{
   var wError = false
   var sliceCriteria: List[String] = Nil
   var simulationTest: String = null
+  var traceSimulation = false
   var refineNodeStructure = true
   /* ChiselConfig flags */
   var chiselConfigClassName: Option[String] = None

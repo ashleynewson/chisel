@@ -32,13 +32,25 @@ class SimulationROMData(node: ROMData) extends SimulationNode(node) {
     data(addr)
   }
 
-  override def annotationName: String = {"Mem"}
+  override def isInSlice(sliceBits: Set[SimulationBit]): Boolean = {
+    if (outputBits.isInSlice(sliceBits)) {
+      return true
+    } else {
+      for (word <- data) {
+        if (outputBits.isInSlice(sliceBits)) {
+          return true
+        }
+      }
+    }
+    return false
+  }
 
   override def dumpJSON(sliceBits: Set[SimulationBit]): String = {
     val builder = new StringBuilder()
     builder.append("{")
-    builder.append("\"name\":\"" + annotationName + "\",")
+    builder.append("\"name\":\"" + node.annotationName + "\",")
     builder.append("\"type\":\"data\",")
+    builder.append("\"in\":" + isInSlice(sliceBits) + ",")
     builder.append("\"width\":" + node.width + ",")
     builder.append("\"size\":" + node.n + ",")
 

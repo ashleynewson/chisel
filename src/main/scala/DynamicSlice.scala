@@ -53,12 +53,13 @@ class DynamicSliceBackend extends Backend with Slicer {
   val requiredSourceFiles = Set[String]()
 
   Driver.getLineNumbers = true
-  Driver.refineNodeStructure = true
+  Driver.refineNodeStructure = false
 
   override def emitRef(node: Node): String = {
     node match {
       // If we're explicitly outputting literal nodes, make sure they have a legitimate name and not just a number.
-      case l: Literal if (allDottable) => "L" + l.toString
+      case l: Literal => "L" + l.toString
+      // case l: Literal if (allDottable) => "L" + l.toString
       case r: Reg =>
         if (r.name == "") r.name = "R" + r.emitIndex
         fullyQualifiedName(node)
@@ -76,7 +77,7 @@ class DynamicSliceBackend extends Backend with Slicer {
       false
     } else {
       m match {
-        case x: Literal  => false;
+        // case x: Literal  => false;
         case _           => true;
       }
     }
@@ -103,19 +104,19 @@ class DynamicSliceBackend extends Backend with Slicer {
     return island == null || island.nodes.contains(node)
   }
 
-  private def isLinkInSlice(from: Node, to: Node): Boolean = {
-    sliceNodes(from) && sliceNodes(to)
-  }
+  // private def isLinkInSlice(from: Node, to: Node): Boolean = {
+  //   sliceNodes(from) && sliceNodes(to)
+  // }
 
-  private def linkTraces(from: Node, to: Node): Set[StackTraceElement] = {
-    if (from.inputs.asInstanceOf[Node.TrackingArrayBuffer[Node]].lineMap.contains(to)) {
-      from.inputs.asInstanceOf[Node.TrackingArrayBuffer[Node]].lineMap(to)
-    } else {
-      return Set()
-    }
-  }
+  // private def linkTraces(from: Node, to: Node): Set[StackTraceElement] = {
+  //   if (from.inputs.asInstanceOf[Node.TrackingArrayBuffer[Node]].lineMap.contains(to)) {
+  //     from.inputs.asInstanceOf[Node.TrackingArrayBuffer[Node]].lineMap(to)
+  //   } else {
+  //     return Set()
+  //   }
+  // }
 
-  private def emitModuleText(top: Module, depth: Int, basedir: String): (String, String, String) = {
+  private def emitModuleText(top: Module, depth: Int, basedir: String): (String, String, String, Boolean) = {
     val res = new StringBuilder()
     val crossings = new StringBuilder()
     val indent = "  " * (depth + 1)
@@ -126,6 +127,7 @@ class DynamicSliceBackend extends Backend with Slicer {
     val sliceLines = SortedSet[Int]()
     val childrenJson = Set[String]()
     val annotationsJson = Set[String]()
+    var inSlice = false
 
     for (child <- top.children) {
       if (! Driver.partitionIslands) {
@@ -136,7 +138,7 @@ class DynamicSliceBackend extends Backend with Slicer {
         // res.append("label = \"" + child.name + "\"\n")
         res.append("label = \"" + child.name + "\n@" + child.instantiationLine + "\"\n")
       }
-      val (innertext, innercrossings, childSliceJson) = emitModuleText(child, depth + 1, basedir + "/" + child.instantiationLine.getLineNumber() + "_" + child.name)
+      val (innertext, innercrossings, childSliceJson, childInSlice) = emitModuleText(child, depth + 1, basedir + "/" + child.instantiationLine.getLineNumber() + "_" + child.name)
       res.append(innertext)
       if (! Driver.partitionIslands) {
         res.append(indent)
@@ -148,10 +150,13 @@ class DynamicSliceBackend extends Backend with Slicer {
 
       if (childSliceJson != null) {
         if (chiselMainLine.equals(child.instantiationLine)) {
-          childrenJson += "\"%s_%s\":%s".format("?", child.name, childSliceJson)
+          childrenJson += "\"%s_%s\":%s".format("?", child.name, childSliceJson, childInSlice)
         } else {
           sliceLines += child.instantiationLine.getLineNumber()
           childrenJson += "\"%s_%s\":%s".format(child.instantiationLine.getLineNumber(), child.name, childSliceJson)
+        }
+        if (childInSlice) {
+          inSlice = true
         }
       }
     }
@@ -222,6 +227,7 @@ class DynamicSliceBackend extends Backend with Slicer {
               if (!chiselMainLine.equals(m.line)) {
                 sliceLines += m.line.getLineNumber()
               }
+              inSlice = true
             }
           }
         }
@@ -245,9 +251,9 @@ class DynamicSliceBackend extends Backend with Slicer {
                   ""
                 }
                 var color = "color=\"black\""
-                if (isLinkInSlice(in, m)) {
-                  color = "color=\"green\""
-                }
+                // if (isLinkInSlice(in, m)) {
+                //   color = "color=\"green\""
+                // }
                 val edge = (emitRef(in) + srcPort  + " -> " + emitRef(m) + dstPort
                   + "[label=\"" + in.needWidth() + "\"," + color + "];"+ EOL)
                 if (islandId != 0) {
@@ -306,15 +312,16 @@ class DynamicSliceBackend extends Backend with Slicer {
 
       val sliceJsonBuilder = new StringBuilder()
       sliceJsonBuilder.append("{")
+      sliceJsonBuilder.append("\"in\":" + inSlice + ",")
       sliceJsonBuilder.append("\"file\":\"" + top.constructorLine.getFileName + "\",")
-      sliceJsonBuilder.append("\"lines\":[" + sliceLines.mkString(",") + "],")
+      // sliceJsonBuilder.append("\"lines\":[" + sliceLines.mkString(",") + "],")
       sliceJsonBuilder.append("\"children\":{" + childrenJson.mkString(",") + "},")
       sliceJsonBuilder.append("\"annotations\":{" + annotationsJson.mkString(",") + "}")
       sliceJsonBuilder.append("}")
       sliceJson = sliceJsonBuilder.toString
     // }
 
-    (res.toString, crossings.toString, sliceJson)
+    (res.toString, crossings.toString, sliceJson, inSlice)
   }
 
 
@@ -332,8 +339,13 @@ class DynamicSliceBackend extends Backend with Slicer {
     var gn = -1;
 
     criteria = Driver.sliceCriteria.map((specification) => new Criterion(c, specification))
+    Driver.traceSimulation = (criteria.size > 0)
 
-    sliceBits = simulation.getSimulationBits()
+    if (Driver.traceSimulation) {
+      sliceBits = simulation.getSimulationBits()
+    } else {
+      sliceBits = Set()
+    }
     // val sliceNodeSets = Set[Set[Node]]()
     val sliceLinksRaw = Map[Node,Map[Node,Set[StackTraceElement]]]()
 
@@ -345,6 +357,9 @@ class DynamicSliceBackend extends Backend with Slicer {
     } else {
       Class.forName(Driver.simulationTest).getConstructors()(0).newInstance(c, simulation)
     }
+    System.err.println("Simulation finished.")
+    System.err.println("Flattening traces...")
+    simulation.flattenTraces()
 
     for (criterion <- criteria) {
       System.err.println("Found node from criterion " + criterion.specification + " to be " + criterion.nodes.map((node) => node.name))
@@ -394,6 +409,7 @@ class DynamicSliceBackend extends Backend with Slicer {
     //   sliceNodes = Set()
     // }
     // System.err.println("Critical nodes: " + criticalNodes.size)
+    System.err.println("Bits in slice: " + sliceBits.size)
     System.err.println("Nodes in slice: " + sliceNodes.size)
 
     val basedir = c.name + ".dynamicslice";
@@ -404,7 +420,7 @@ class DynamicSliceBackend extends Backend with Slicer {
     val out_slice = createOutputFile(basedir + "/slice.js")
     out_d.write("digraph " + c.name + "{\n")
     out_d.write("rankdir = LR;\n")
-    val (innertext, innercrossings, sliceText) = emitModuleText(c, 0, basedir)
+    val (innertext, innercrossings, sliceText, _) = emitModuleText(c, 0, basedir)
     out_d.write(innertext)
     if (Driver.partitionIslands && innercrossings.length > 0) {
       out_d.write(innercrossings)

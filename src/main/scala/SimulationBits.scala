@@ -4,6 +4,8 @@
 
 package Chisel
 
+import scala.collection.mutable.Set
+
 class SimulationBits(val width: Int, var producer: SimulationNode = null) {
   val highest = width - 1
   val bits = new Array[SimulationBit](width)
@@ -179,8 +181,10 @@ class SimulationBits(val width: Int, var producer: SimulationNode = null) {
   }
 
   def clear(): Unit = {
-    for (bit <- bits) {
-      bit.clear()
+    if (Driver.traceSimulation) {
+      for (bit <- bits) {
+        bit.clear()
+      }
     }
   }
 
@@ -194,11 +198,23 @@ class SimulationBits(val width: Int, var producer: SimulationNode = null) {
   // }
 
   def depend(that: SimulationBits): Unit = {
-    for (tbit <- that.bits) {
-      // if (tbit.critical) {
-      for (bit <- bits) {
-        bit.depend(tbit)
+    if (Driver.traceSimulation) {
+      val proxySet = new AccumulatorSet[SimulationBit]()
+      for (tbit <- that.bits) {
+        proxySet ++= tbit.criticalInputs
+        proxySet += tbit
       }
+      for (bit <- bits) {
+        bit.criticalInputs ++= proxySet
+      }
+      proxySet.freeze()
+      proxySet.collapse()
+      // for (tbit <- that.bits) {
+      //   // if (tbit.critical) {
+      //   for (bit <- bits) {
+      //     bit.depend(tbit)
+      //   }
+      //   // }
       // }
     }
   }
@@ -210,4 +226,13 @@ class SimulationBits(val width: Int, var producer: SimulationNode = null) {
   //   }
   //   nodes
   // }
+
+  def isInSlice(sliceBits: Set[SimulationBit]): Boolean = {
+    for (bit <- bits) {
+      if (sliceBits.contains(bit)) {
+        return true
+      }
+    }
+    return false
+  }
 }
