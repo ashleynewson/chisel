@@ -188,6 +188,14 @@ class SimulationBits(val width: Int, var producer: SimulationNode = null) {
     }
   }
 
+  def checkpoint(selfInclude: Boolean): Unit = {
+    if (Driver.traceSimulation) {
+      for (bit <- bits) {
+        bit.checkpoint(selfInclude)
+      }
+    }
+  }
+
   // def critical: Boolean = {
   //   for (bit <- bits) {
   //     if (bit.critical) {

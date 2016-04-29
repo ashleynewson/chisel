@@ -78,7 +78,8 @@ class SimulationTester(module: Module, simulation: Simulation) {
     simulation.getSimulationNode(data).output.double
   }
   def peekAt[T <: Bits](data: Mem[T], addr: Int): BigInt = {
-    simulation.getSimulationNode(data).asInstanceOf[SimulationMem].read(addr).bigInt
+    // Don't use read.
+    simulation.getSimulationNode(data).asInstanceOf[SimulationMem].data(addr).bigInt
   }
 
   // For use with dependence tracking. Should be done on IOs.
@@ -105,8 +106,8 @@ class SimulationTester(module: Module, simulation: Simulation) {
     simulation.getSimulationNode(data).output.float = x
   }
   def pokeAt[T <: Bits](data: Mem[T], value: BigInt, addr: Int): BigInt = {
-    // Yes, read.
-    simulation.getSimulationNode(data).asInstanceOf[SimulationMem].read(addr).bigInt = value
+    // Don't use write.
+    simulation.getSimulationNode(data).asInstanceOf[SimulationMem].data(addr).bigInt = value
   }
 
   def expect(good: Boolean, msg: => String): Boolean = {

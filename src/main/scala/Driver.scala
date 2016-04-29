@@ -328,6 +328,7 @@ object Driver extends FileSystemUtilities{
     wError = false
     sliceCriteria = Nil
     simulationTest = null
+    strictSlice = true
     refineNodeStructure = true
     chiselConfigClassName = None
     chiselProjectName = None
@@ -426,6 +427,7 @@ object Driver extends FileSystemUtilities{
         // Slicer flags
         case "--slice" => sliceCriteria = args(i + 1) :: sliceCriteria; i += 1
         case "--simulationTest" => simulationTest = args(i + 1); i += 1
+        case "--unstrictSlice" => strictSlice = false
         case any => ChiselError.warning("'" + arg + "' is an unknown argument.")
       }
       i += 1
@@ -506,6 +508,7 @@ object Driver extends FileSystemUtilities{
   var wError = false
   var sliceCriteria: List[String] = Nil
   var simulationTest: String = null
+  var strictSlice = true
   var traceSimulation = false
   var refineNodeStructure = true
   /* ChiselConfig flags */

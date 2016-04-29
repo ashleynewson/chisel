@@ -102,9 +102,11 @@ object AssignmentMultiplex {
   def apply (t: Node, c: Node, a: Node): Node = {
     val mux = Multiplex(t, c, a)
     mux.hidden = true
-    mux.getNode match {
-      case realMux: Mux => realMux.biasDependence(1)
-      case _ => ()
+    if (!Driver.strictSlice) {
+      mux.getNode match {
+        case realMux: Mux => realMux.biasDependence(1)
+        case _ => ()
+      }
     }
     mux
   }

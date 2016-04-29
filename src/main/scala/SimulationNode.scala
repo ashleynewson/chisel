@@ -37,7 +37,7 @@ abstract class SimulationNode(val node: Node) extends SimulationAnnotation {
     bits
   }
 
-  /** Obtain the list of all SimulationBits associated with this node */
+  /** Reset dependencies of all bits for this node. */
   def clearDependencies(): Unit = {
     getSimulationBits.map(_.clear())
   }
@@ -147,5 +147,11 @@ abstract class SimulationNode(val node: Node) extends SimulationAnnotation {
 
     builder.append("}")
     builder.toString
+  }
+
+  /* Returns whether any additional dependencies exist for a bit that
+   haven't been added due to laziness */
+  def extra_dependence(bit: SimulationBit): Set[SimulationBit] = {
+    Set()
   }
 }

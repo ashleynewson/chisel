@@ -21,7 +21,10 @@ object AccumulatorSet {
       }
     }
   }
+
+  implicit def toSet[T](accSet: AccumulatorSet[T]): Set[T] = accSet.immediates
 }
+
 
 /**
  * The purpose of this set data structure is to allow fast

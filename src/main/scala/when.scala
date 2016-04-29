@@ -46,11 +46,11 @@ object when {
   // TODO: make private[Chisel]?
   /** Execute a when block - internal do not use */
   def execWhen(cond: Bool)(block: => Unit) {
-    if (Driver.refineNodeStructure) {
-      Module.current.whenConds.push((Module.current.whenCond && cond).biasDependence(0).asHidden)
-    } else {
-      Module.current.whenConds.push((Module.current.whenCond && Buffer(cond)).biasDependence(0).asHidden)
-    }
+    // if (Driver.refineNodeStructure) {
+      Module.current.whenConds.push((Module.current.whenCond & cond).biasDependence(0).asHidden)
+    // } else {
+    //   Module.current.whenConds.push((Module.current.whenCond & Buffer(cond)).biasDependence(0).asHidden)
+    // }
     block
     Module.current.whenConds.pop()
   }
@@ -68,12 +68,17 @@ object when {
 class when (prevCond: Bool) {
   /** execute block when alternative cond is true */
   def elsewhen (cond: Bool)(block: => Unit): when = {
-    when.execWhen(((!prevCond).asHidden && Buffer(cond)).biasDependence(0).asHidden){ block }
-    new when((prevCond || cond).biasDependence(0).asHidden);
+    when.execWhen(((!prevCond).asHidden & cond).biasDependence(0).asHidden){ block }
+    new when((prevCond | cond).biasDependence(0).asHidden);
   }
   /** execute block by default */
   def otherwise (block: => Unit) {
-    val cond = (!prevCond).asHidden
+    val cond = if (Driver.refineNodeStructure) {
+      (!prevCond).asHidden
+    } else {
+      // Need to use & rather than && to avoid Bool(true) optimising out
+      ((!prevCond).asHidden & Bool(true)).asHidden
+    }
     cond.canBeUsedAsDefault = !Module.current.hasWhenCond
     when.execWhen(cond){ block }
   }
@@ -120,7 +125,7 @@ object is {
   def apply(v: Bits, vr: Bits*)(block: => Unit): Unit =
     apply(v :: vr.toList)(block)
   def apply(v: Iterable[Bits])(block: => Unit): Unit =
-    when (v.map(_ === switchCond).fold(Bool(false))(_||_)) { block }
+    when (v.map(_ === switchCond).fold(Bool(false))(_|_)) { block }
 
   private def switchCond = {
     if (Module.current.switchKeys.isEmpty) {

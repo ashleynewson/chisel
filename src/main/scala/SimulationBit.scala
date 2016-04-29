@@ -10,7 +10,7 @@ object SimulationBit {
   implicit def toBoolean(bit: SimulationBit): Boolean = bit.value
 }
 
-class SimulationBit(var value: Boolean, var producer: SimulationNode = null) {
+class SimulationBit(var value: Boolean, var producer: SimulationNode) {
   var criticalInputs = new AccumulatorSet[SimulationBit]()
   var inSlice = true
 
@@ -45,6 +45,7 @@ class SimulationBit(var value: Boolean, var producer: SimulationNode = null) {
     criticalInputs.preserve()
   }
 
+  /* Clear dependencies for this node */
   def clear() {
     // criticalInputs.clear()
     if (Driver.traceSimulation) {
@@ -54,8 +55,29 @@ class SimulationBit(var value: Boolean, var producer: SimulationNode = null) {
     }
   }
 
+  /* If we want to add dependencies after the current set of
+   * dependencies have been passed on, we need to be told so. */
+  def checkpoint(selfInclude: Boolean): Unit = {
+    if (Driver.traceSimulation) {
+      val oldSet = criticalInputs
+      criticalInputs = new AccumulatorSet[SimulationBit]()
+      criticalInputs ++= oldSet
+      if (selfInclude) {
+        criticalInputs += this
+      }
+      oldSet.freeze()
+      oldSet.collapse()
+    }
+  }
+
   def affectedBy(bit: SimulationBit): Boolean = {
-    criticalInputs.contains(bit)
+    if (criticalInputs.contains(bit)) {
+      true
+    } else if (producer != null) {
+      producer.extra_dependence(this).contains(bit)
+    } else {
+      false
+    }
   }
 
   // def critical: Boolean = {criticalFlag}

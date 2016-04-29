@@ -370,9 +370,10 @@ class DynamicSliceBackend extends Backend with Slicer {
         val simulationNode = simulation.getSimulationNode(node)
         val bits: Array[SimulationBit] = criterion.positions.last.address match {
           case None => {simulationNode.output.bits}
-          case address: Some[Int] => {
+          case Some(address) => {
             simulationNode match {
-              case n: SimulationMem => n.read(address.get).bits
+              case n: SimulationMem => n.data(address).bits
+              case n: SimulationROMData => n.data(address).bits
             }
           }
         }
