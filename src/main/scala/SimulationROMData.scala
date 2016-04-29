@@ -51,6 +51,7 @@ class SimulationROMData(node: ROMData) extends SimulationNode(node) {
     builder.append("\"name\":\"" + node.annotationName + "\",")
     builder.append("\"type\":\"data\",")
     builder.append("\"in\":" + isInSlice(sliceBits) + ",")
+    builder.append("\"hide\":" + node.hidden + ",")
     builder.append("\"width\":" + node.width + ",")
     builder.append("\"size\":" + node.n + ",")
 

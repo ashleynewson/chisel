@@ -4,11 +4,70 @@
 
 package Chisel
 
-import Chisel._
+object SimulationTester {
+  object DependenceSet {
+    val activeSets = scala.collection.mutable.Set[DependenceSet]()
+
+    def apply(bitses: SimulationBits*): DependenceSet = {
+      val set = new DependenceSet()
+      for (bits <- bitses) {
+        set.depend(bits, (BigInt(2) << (bits.width)) - 1)
+      }
+      set
+    }
+
+    def freeze_traces(): Unit = {
+      for (set <- activeSets) {
+        set.set.preserve()
+      }
+    }
+    def unfreeze_traces(): Unit = {
+      for (set <- activeSets) {
+        set.set.unpreserve()
+      }
+    }
+  }
+
+  class DependenceSet {
+    val set = new AccumulatorSet[SimulationBit]()
+    // set.preserve()
+    DependenceSet.activeSets += this
+
+    def depend(data: SimulationBits): DependenceSet = {
+      depend(data, (BigInt(1) << (data.width) - 1))
+    }
+    def depend(data: SimulationBits, mask: BigInt): DependenceSet = {
+      var i = 0;
+      var submask = BigInt(1)
+      // set.unpreserve()
+      for (i <- 0 until data.width) {
+        if ((submask & mask) != 0) {
+          set ++= data(i).criticalInputs
+          set += data(i)
+        }
+        submask <<= 1
+      }
+      // set.preserve()
+      this
+    }
+    def depend(that: DependenceSet): DependenceSet = {
+      // set.unpreserve()
+      set ++= that.set
+      // set.preserve()
+      this
+    }
+
+    def disuse(): Unit = {
+      // set.unpreserve()
+      set.freeze()
+      set.collapse()
+      DependenceSet.activeSets -= this
+    }
+  }
+}
 
 // Doesn't work the same way as a normal tester.
 class SimulationTester(module: Module, simulation: Simulation) {
-
   def peek(data: Bits): BigInt = {
     simulation.getSimulationNode(data).output.bigInt
   }
@@ -21,6 +80,14 @@ class SimulationTester(module: Module, simulation: Simulation) {
   def peekAt[T <: Bits](data: Mem[T], addr: Int): BigInt = {
     simulation.getSimulationNode(data).asInstanceOf[SimulationMem].read(addr).bigInt
   }
+
+  // For use with dependence tracking. Should be done on IOs.
+  def bitsOf(data: Bits): SimulationBits = {
+    simulation.getSimulationNode(data).output
+  }
+  // def bitsAt[T <: Bits](data: Mem[T], addr: Int): SimulationBits = {
+  //   simulation.getSimulationNode(data).asInstanceOf[SimulationMem].read(addr)
+  // }
 
   def poke(data: Bits, x: Boolean): Unit = {
     simulation.getSimulationNode(data).output(0) = x
@@ -51,5 +118,17 @@ class SimulationTester(module: Module, simulation: Simulation) {
     for (i <- 1 to n) {
       simulation.step()
     }
+  }
+
+  def resetSlice(): Unit = {
+    simulation.clearDependencies()
+  }
+
+  def startSlice(): Unit = {
+    simulation.enableSlicing()
+  }
+
+  def stopSlice(): Unit = {
+    simulation.disableSlicing()
   }
 }

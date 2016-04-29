@@ -47,9 +47,9 @@ object when {
   /** Execute a when block - internal do not use */
   def execWhen(cond: Bool)(block: => Unit) {
     if (Driver.refineNodeStructure) {
-      Module.current.whenConds.push(Module.current.whenCond && cond)
+      Module.current.whenConds.push((Module.current.whenCond && cond).biasDependence(0).asHidden)
     } else {
-      Module.current.whenConds.push(Module.current.whenCond && Buffer(cond))
+      Module.current.whenConds.push((Module.current.whenCond && Buffer(cond)).biasDependence(0).asHidden)
     }
     block
     Module.current.whenConds.pop()
@@ -68,12 +68,12 @@ object when {
 class when (prevCond: Bool) {
   /** execute block when alternative cond is true */
   def elsewhen (cond: Bool)(block: => Unit): when = {
-    when.execWhen(!prevCond && cond){ block }
-    new when(prevCond || cond);
+    when.execWhen(((!prevCond).asHidden && Buffer(cond)).biasDependence(0).asHidden){ block }
+    new when((prevCond || cond).biasDependence(0).asHidden);
   }
   /** execute block by default */
   def otherwise (block: => Unit) {
-    val cond = !prevCond
+    val cond = (!prevCond).asHidden
     cond.canBeUsedAsDefault = !Module.current.hasWhenCond
     when.execWhen(cond){ block }
   }

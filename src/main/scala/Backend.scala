@@ -237,7 +237,7 @@ class Backend extends FileSystemUtilities{
           reg setName namespace.getUniqueName(reg.name)
         case mem: Mem[_] => 
           mem setName namespace.getUniqueName(mem.name)
-        case node: Node if !node.isTypeNode && !node.isLit && !node.isIo => {
+        case node: Node if !node.isTypeNode && !node.isIo => {
           // the isLit check should not be necessary
           // the isIo check is also strange and happens because parents see child io in the DFS
           node.name = namespace.getUniqueName(node.name)

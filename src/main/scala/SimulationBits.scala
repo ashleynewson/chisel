@@ -219,6 +219,22 @@ class SimulationBits(val width: Int, var producer: SimulationNode = null) {
     }
   }
 
+  def depend(that: SimulationTester.DependenceSet): Unit = {
+      depend(that, (BigInt(1) << width) - 1)
+  }
+
+  def depend(that: SimulationTester.DependenceSet, mask: BigInt): Unit = {
+    if (Driver.traceSimulation) {
+      var submask = BigInt(1)
+      for (i <- 0 until width) {
+        if ((submask & mask) != 0) {
+          bits(i).criticalInputs ++= that.set
+        }
+        submask <<= 1
+      }
+    }
+  }
+
   // def criticalInputs: Set[SimulationNode] = {
   //   var nodes = Set[SimulationNode]()
   //   for (bit <- bits) {

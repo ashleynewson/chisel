@@ -37,6 +37,11 @@ abstract class SimulationNode(val node: Node) extends SimulationAnnotation {
     bits
   }
 
+  /** Obtain the list of all SimulationBits associated with this node */
+  def clearDependencies(): Unit = {
+    getSimulationBits.map(_.clear())
+  }
+
   /**
    * Compute the value of this node's output.
    * The order of evaluation must obey combinatorial flow.
@@ -125,6 +130,7 @@ abstract class SimulationNode(val node: Node) extends SimulationAnnotation {
     builder.append("\"name\":\"" + node.annotationName + "\",")
     builder.append("\"type\":\"data\",")
     builder.append("\"in\":" + isInSlice(sliceBits) + ",")
+    builder.append("\"hide\":" + node.hidden + ",")
     builder.append("\"width\":" + outputBits.width + ",")
     builder.append("\"size\":1,")
 

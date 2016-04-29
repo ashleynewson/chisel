@@ -29,6 +29,25 @@ pre {
     /* overflow:auto; */
 }
 
-.in-slice {
+.in {
     background: #0F0;
+}
+.in.hide {
+    background: rgba(255, 255, 0, 0.4);
+}
+
+a:link {
+    color: #00f;
+}
+a:visited {
+    color: #00f;
+}
+a:link.hide {
+    color: rgba(0, 0, 255, 0.4);
+}
+a:visited.hide {
+    color: rgba(0, 0, 255, 0.4);
+}
+a:hover.hide {
+    color: rgba(0, 0, 255, 1.0);
 }

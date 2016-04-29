@@ -7,6 +7,8 @@ package Chisel
 import collection.mutable.{Map,Set}
 
 class Simulation(val topModule: Module) {
+  var canSlice = true
+
   private val nodeMap = Map[Node,SimulationNode]()
   var simulationNodes = List[SimulationNode]()
 
@@ -121,9 +123,25 @@ class Simulation(val topModule: Module) {
       }
     }
     cycles += 1
-    if (cycles % 32 == 0) {
+    if (cycles % 128 == 0) {
       flattenTraces()
     }
+  }
+
+  def clearDependencies(): Unit = {
+    for (simulationNode <- simulationNodes) {
+      simulationNode.clearDependencies()
+    }
+  }
+
+  def enableSlicing(): Unit = {
+    if (canSlice) {
+      Driver.traceSimulation = true
+    }
+  }
+
+  def disableSlicing(): Unit = {
+    Driver.traceSimulation = false
   }
 
   def flattenTraces(): Unit = {
@@ -131,7 +149,9 @@ class Simulation(val topModule: Module) {
       for (bit <- simulationBits) {
         bit.freeze_trace()
       }
+      SimulationTester.DependenceSet.freeze_traces()
       AccumulatorSet.flattenAll()
+      SimulationTester.DependenceSet.unfreeze_traces()
       for (bit <- simulationBits) {
         bit.unfreeze_trace()
       }
@@ -178,6 +198,16 @@ class Simulation(val topModule: Module) {
       }
     }
     traceSet
+  }
+
+  def getSliceNodes(sliceBits: Set[SimulationBit]): Set[Node] = {
+    val nodeSet = Set[Node]()
+    for ((node, simulationNode) <- nodeMap) {
+      if (simulationNode.isInSlice(sliceBits)) {
+        nodeSet += node
+      }
+    }
+    nodeSet
   }
 
   // def criticalNodes(): Set[Node] = {

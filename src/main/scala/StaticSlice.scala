@@ -233,7 +233,7 @@ class StaticSliceBackend extends Backend with Slicer {
 
       for (m <- top.nodes) {
         val lineStr = (if (chiselMainLine.equals(m.line)) "?" else m.line.getLineNumber())
-        annotationsJson += "\"%s_%s\":%s".format(lineStr, m.name, "{\"name\":\"" + m.annotationName + "\",\"type\":\"bool\",\"in\":" + (if (sliceNodes.contains(m)) 1 else 0) + "}")
+        annotationsJson += "\"%s_%s\":%s".format(lineStr, m.name, "{\"name\":\"" + m.annotationName + "\",\"type\":\"bool\",\"in\":" + (if (sliceNodes.contains(m)) 1 else 0) + ",\"hide\":" + m.hidden + "}")
       }
 
       for (m <- top.nodes) {
@@ -259,9 +259,10 @@ class StaticSliceBackend extends Backend with Slicer {
             }
             label += "\""
             var color = "color=\"black\""
-            if (seedNodes(m)) {
-              color = "color=\"red\""
-            } else if (sliceNodes(m)) {
+            // if (seedNodes(m)) {
+            //   color = "color=\"red\""
+            // } else 
+            if (sliceNodes(m)) {
               color = "color=\"green\""
             }
 

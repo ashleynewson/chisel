@@ -142,7 +142,13 @@ object RegInit {
 
 class RegReset extends Reg {
   override def assignReset(rst: => Bool): Boolean = {
-    this.doProcAssign(inputs(1), rst)
+    if (procAssigned || isEnable) {
+      inputs(0) = Multiplex(rst, Buffer(inputs(1)), inputs(0))
+    } else {
+      super.doProcAssign(inputs(1), rst)
+    }
+    // The normal proc assign breaks things for slices.
+    // this.doProcAssign(inputs(1), rst)
     true
   }
 }
@@ -156,8 +162,11 @@ class Reg extends Delay with proc {
   override def usesInClockHi(n: Node) = n eq next
 
   override def doProcAssign(src: Node, cond: Bool) {
-    if (procAssigned || isEnable) inputs(0) = Multiplex(cond, src, inputs(0))
-    else super.doProcAssign(src, cond)
+    if (procAssigned || isEnable) {
+        inputs(0) = AssignmentMultiplex(cond, Buffer(src), inputs(0))
+    } else {
+      super.doProcAssign(src, cond)
+    }
   }
 
   // these are used to infer read enables on Mems

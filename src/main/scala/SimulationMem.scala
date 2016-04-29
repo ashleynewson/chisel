@@ -30,8 +30,12 @@ class SimulationMem(node: Mem[_]) extends SimulationNode(node) {
 
       if (writer.inputs(1).output(0)) {
         write(writer.inputs(0).output.int, writer.inputs(2).output)
-        data(writer.inputs(0).output.int).depend(inputs(0).output)
-        data(writer.inputs(0).output.int).depend(inputs(1).output)
+        // Depend on address
+        data(writer.inputs(0).output.int).depend(writer.inputs(0).output)
+        // Depend on enable
+        data(writer.inputs(0).output.int).depend(writer.inputs(1).output)
+        // Depend on writer
+        data(writer.inputs(0).output.int).depend(writer.output)
       }
     }
   }
@@ -64,6 +68,7 @@ class SimulationMem(node: Mem[_]) extends SimulationNode(node) {
     builder.append("\"name\":\"" + node.annotationName + "\",")
     builder.append("\"type\":\"data\",")
     builder.append("\"in\":" + isInSlice(sliceBits) + ",")
+    builder.append("\"hide\":" + node.hidden + ",")
     builder.append("\"width\":" + node.width + ",")
     builder.append("\"size\":" + node.n + ",")
 

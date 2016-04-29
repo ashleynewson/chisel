@@ -12,4 +12,8 @@ class SimulationBuffer(node: Node) extends SimulationNode(node) {
     // Yes, not ':=', but '='. It's just cheaper.
     outputBits = inputs(0).output
   }
+
+  override def clearDependencies(): Unit = {
+    // Don't clear anything!
+  }
 }

@@ -182,11 +182,16 @@ class SimulationOp(node: Op) extends SimulationNode(node) {
                 outputBits(i).depend(inputs(0).output(i))
                 outputBits(i).depend(inputs(1).output(i))
               } else {
-                if (!inputs(0).output(i)) {
-                  outputBits(i).depend(inputs(0).output(i))
-                }
-                if (!inputs(1).output(i)) {
-                  outputBits(i).depend(inputs(1).output(i))
+                if (node.dependenceBias.size > 0 && !inputs(0).output(i) && !inputs(1).output(i)) {
+                  for (in <- node.dependenceBias) {
+                    outputBits(i).depend(inputs(in).output(i))
+                  }
+                } else {
+                  for (in <- 0 until 2) {
+                    if (!inputs(in).output(i)) {
+                      outputBits(i).depend(inputs(in).output(i))
+                    }
+                  }
                 }
               }
             }
@@ -198,11 +203,16 @@ class SimulationOp(node: Op) extends SimulationNode(node) {
                 outputBits(i).depend(inputs(0).output(i))
                 outputBits(i).depend(inputs(1).output(i))
               } else {
-                if (inputs(0).output(i)) {
-                  outputBits(i).depend(inputs(0).output(i))
-                }
-                if (inputs(1).output(i)) {
-                  outputBits(i).depend(inputs(1).output(i))
+                if (node.dependenceBias.size > 0 && inputs(0).output(i) && inputs(1).output(i)) {
+                  for (in <- node.dependenceBias) {
+                    outputBits(i).depend(inputs(in).output(i))
+                  }
+                } else {
+                  for (in <- 0 until 2) {
+                    if (inputs(in).output(i)) {
+                      outputBits(i).depend(inputs(in).output(i))
+                    }
+                  }
                 }
               }
             }
@@ -365,14 +375,18 @@ class SimulationOp(node: Op) extends SimulationNode(node) {
             // outputBits := (if (inputs(0).output(0)) inputs(1).output else inputs(2).output)
             if (inputs(0).output(0)) {
               outputBits := inputs(1).output
-              outputBits.depend(inputs(0).output)
+              if (!node.dependenceBias.contains(2)) {
+                outputBits.depend(inputs(0).output)
+              }
               // for (i <- 0 to outputBits.highest) {
               //   outputBits(i).depend(inputs(0).output(0))
               //   outputBits(i).depend(inputs(1).output(i))
               // }
             } else {
               outputBits := inputs(2).output
-              outputBits.depend(inputs(0).output)
+              if (!node.dependenceBias.contains(1)) {
+                outputBits.depend(inputs(0).output)
+              }
               // for (i <- 0 to outputBits.highest) {
               //   outputBits(i).depend(inputs(0).output(0))
               //   outputBits(i).depend(inputs(2).output(i))

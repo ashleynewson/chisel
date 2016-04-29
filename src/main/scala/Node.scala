@@ -30,7 +30,7 @@
 
 package Chisel
 
-import scala.collection.mutable.{ArrayBuffer, Stack, LinkedHashSet}
+import scala.collection.mutable.{ArrayBuffer, Stack, LinkedHashSet, Set}
 
 object Node {
   /* With more effort, this could be more precise. */
@@ -219,6 +219,12 @@ abstract class Node extends Nameable {
       val trace = new Throwable().getStackTrace
       ChiselError.findFirstUserLine(trace) getOrElse trace(0)
     } else null
+
+  /** Hidden nodes are implied. (Muxes dependent on when blocks, etc...).
+   * Hiding nodes improves slice results */
+  var hidden = false
+  /* Dependence biases help produce smaller slices. */
+  var dependenceBias = Set[Int]()
 
   /** The unique id of this node */
   val _id = Driver.getNodeId 
@@ -600,7 +606,17 @@ abstract class Node extends Nameable {
 
   def getSimulationNode(): SimulationNode = {assert(false, ChiselError.error("Simulation does not support this node: " + getClass())); new SimulationBuffer(this)}
 
-  def inputsString: String = "(" + inputs.map(_.name).mkString(", ") + ")"
+  def inputsString: String = "(" + inputs.map((x) => (x.name)).mkString(", ") + ")"
 
   def annotationName: String = this.getClass.getSimpleName + inputsString
+
+  def biasDependence(inputNos: Int*): this.type = {
+    dependenceBias = Set(inputNos:_*)
+    this
+  }
+
+  def asHidden: this.type = {
+    hidden = true
+    this
+  }
 }

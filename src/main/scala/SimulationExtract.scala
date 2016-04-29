@@ -15,5 +15,7 @@ class SimulationExtract(node: Extract) extends SimulationNode(node) {
     for (i <- lo to hi) {
       outputBits(i - lo) := inputs(0).output(i)
     }
+    outputBits.depend(inputs(1).output)
+    outputBits.depend(inputs(2).output)
   }
 }

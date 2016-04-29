@@ -56,6 +56,14 @@ class AccumulatorSet[T] extends Ordered[AccumulatorSet[T]] {
     }
   }
 
+  def unfreeze(): Unit = {
+    frozen = false
+    if (subsets.size != 0) {
+      AccumulatorSet.origins -= this
+    }
+  }
+
+  /* Used to protect from destruction by flattening */
   def preserve(): Unit = {
     freeze()
     preserved = true

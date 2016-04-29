@@ -23,6 +23,7 @@ var sliceLines = [];
 
 for (var childPos in slicelet.children) {
     if (slicelet.children.hasOwnProperty(childPos)) {
+        var child = slicelet.children[childPos];
         var childPosSplit = childPos.split('_');
         var name = childPosSplit[1];
         var linkInstPath;
@@ -31,13 +32,13 @@ for (var childPos in slicelet.children) {
         } else {
             linkInstPath = instPath + '/' + childPos;
         }
-        var link = '<a href="' + source_html(slicelet.children[childPos].file) + '?inst=' + linkInstPath + '">' + name + '</a> ';
+        var link = '<a' + (child.in ? ' class="in"' : '') + ' href="' + source_html(slicelet.children[childPos].file) + '?inst=' + linkInstPath + '">' + name + '</a> ';
         if (childPosSplit[0] === "?") {
             extraLinks += link;
         } else {
             var line = parseInt(childPosSplit[0]);
             addLink(line, link);
-            if (slicelet.children[childPos].in) {
+            if (child.in) {
                 sliceLines.push(line);
             }
         }
@@ -45,6 +46,7 @@ for (var childPos in slicelet.children) {
 }
 for (var annotationPos in slicelet.annotations) {
     if (slicelet.annotations.hasOwnProperty(annotationPos)) {
+        var annotation = slicelet.annotations[annotationPos];
         var name = annotationPos.substring(annotationPos.indexOf('_')+1);
         if (name == "") {
             name = "?";
@@ -56,13 +58,20 @@ for (var annotationPos in slicelet.annotations) {
             linkInstPath = instPath + '/' + annotationPos;
         }
         var lineStr = annotationPos.substring(0, annotationPos.indexOf('_'));
-        var link = '<a href="annotation.html?inst=' + linkInstPath + '">' + name + '</a> ';
+        var classes = [];
+        if (annotation.in) {
+            classes.push("in");
+        }
+        if (annotation.hide) {
+            classes.push("hide");
+        }
+        var link = '<a' + (classes.length > 0 ? ' class="' + classes.join(' ') + '"' : '') + ' title="' + annotation.name + '"' + ' href="annotation.html?inst=' + linkInstPath + '">' + name + '</a> ';
         if (lineStr === "?") {
             extraLinks += link;
         } else {
             var line = parseInt(lineStr);
             addLink(line, link);
-            if (slicelet.annotations[annotationPos].in) {
+            if (annotation.in && !annotation.hide) {
                 sliceLines.push(line);
             }
         }
@@ -76,7 +85,7 @@ var lines = source.split('\n');
 
 for (i = 0; i < sliceLines.length; i++) {
     var lineNo = sliceLines[i] - 1; // 1 indexing to 0 indexing
-    lines[lineNo] = '<span class="in-slice">' + lines[lineNo] + '</span>';
+    lines[lineNo] = '<span class="in">' + lines[lineNo] + '</span>';
 }
 
 var margin = [];

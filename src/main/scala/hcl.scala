@@ -101,10 +101,10 @@ trait proc extends Node {
 
   protected[Chisel] def doProcAssign(src: Node, cond: Bool): Unit = {
     if (procAssigned) {
-      inputs(0) = Multiplex(cond, src, inputs(0))
+      inputs(0) = AssignmentMultiplex(cond, Buffer(src), inputs(0))
     } else if (cond.litValue() != 0) {
       procAssigned = true
-      val mux = Multiplex(cond, src, default)
+      val mux = AssignmentMultiplex(cond, Buffer(src), default)
       if (inputs.isEmpty) inputs += mux
       else { require(inputs(0) == default); inputs(0) = mux }
     }

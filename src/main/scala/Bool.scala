@@ -91,7 +91,7 @@ class Bool extends UInt {
     else if (this._isComplementOf(b)) Bool(true)
     else newBinaryOp(b, "|")
 
-  override def unary_!(): Bool = this ^ Bool(true)
+  override def unary_!(): Bool = ~this
 
   def isTrue: Boolean = litValue() == 1
 }

@@ -331,17 +331,18 @@ class DynamicSliceBackend extends Backend with Slicer {
 
     flattenAll
 
+    criteria = Driver.sliceCriteria.map((specification) => new Criterion(c, specification))
+
     simulation = new Simulation(c)
+    simulation.canSlice = (criteria.size > 0)
+    simulation.enableSlicing()
 
     if (Driver.partitionIslands) {
       islands = createIslands()
     }
     var gn = -1;
 
-    criteria = Driver.sliceCriteria.map((specification) => new Criterion(c, specification))
-    Driver.traceSimulation = (criteria.size > 0)
-
-    if (Driver.traceSimulation) {
+    if (simulation.canSlice) {
       sliceBits = simulation.getSimulationBits()
     } else {
       sliceBits = Set()
@@ -377,7 +378,7 @@ class DynamicSliceBackend extends Backend with Slicer {
         }
         var maskBits = Set[SimulationBit]()
         for (bit <- bits) {
-          maskBits += bit
+          // maskBits += bit
           criterion.direction match {
             case Criterion.Direction.Forward => {
               maskBits ++= simulation.forwardTraceBit(bit)
@@ -395,11 +396,12 @@ class DynamicSliceBackend extends Backend with Slicer {
     if (seedNodes.size == 0) {
       System.err.println("Warning: No criteria nodes found")
     }
-    for (bit <- sliceBits) {
-      if (bit.producer != null) {
-        sliceNodes += bit.producer.node
-      }
-    }
+    sliceNodes = simulation.getSliceNodes(sliceBits)
+    // for (bit <- sliceBits) {
+    //   if (bit.producer != null) {
+    //     sliceNodes += bit.producer.node
+    //   }
+    // }
     // // criticalNodes = simulation.criticalNodes()
     // // sliceNodes = simulation.traceNodes()
     // if (sliceNodeSets.size > 0) {

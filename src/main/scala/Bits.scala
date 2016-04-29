@@ -527,6 +527,22 @@ abstract class Bits extends Data with proc {
       case OUTPUT => new SimulationOutput(this)
     }
   }
+
+  /* In case this is a type node/buffer */
+  override def biasDependence(inputNos: Int*): this.type = {
+    if (isTypeNode && !inputs.isEmpty) {
+      inputs(0).biasDependence(inputNos:_*)
+    }
+    this
+  }
+  /* In case this is a type node/buffer */
+  override def asHidden: this.type = {
+    super.asHidden
+    if (isTypeNode && !inputs.isEmpty) {
+      inputs(0).asHidden
+    }
+    this
+  }
 }
 
 

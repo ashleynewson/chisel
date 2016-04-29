@@ -32,6 +32,8 @@ package Chisel
 import Op._
 import Node._
 
+import scala.collection.mutable.Set
+
 /** Cast a node to be Bits */
 object chiselCast {
   /** @tparam S type of the node to cast

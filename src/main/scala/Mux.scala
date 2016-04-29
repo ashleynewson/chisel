@@ -98,6 +98,18 @@ object Multiplex {
   }
 }
 
+object AssignmentMultiplex {
+  def apply (t: Node, c: Node, a: Node): Node = {
+    val mux = Multiplex(t, c, a)
+    mux.hidden = true
+    mux.getNode match {
+      case realMux: Mux => realMux.biasDependence(1)
+      case _ => ()
+    }
+    mux
+  }
+}
+
 /** Usefulness is questionable, remove? */
 object isLessThan {
 

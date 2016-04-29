@@ -277,6 +277,7 @@ object Literal {
         ChiselError.error({"width " + width + " is too small for literal " + x + ". Smallest allowed width is " + xWidth})
       }
     }
+    res.valueString = "0x" + xString
     res.init("0x" + xString, w)
     res.hasInferredWidth = width == -1
     res
@@ -327,9 +328,10 @@ class Literal extends Node {
   var hasInferredWidth = false
   var isZ = false
   var base = 'x'
-  lazy val value: BigInt = Literal.stringToVal(base, name)
+  var valueString: String = null
+  lazy val value: BigInt = Literal.stringToVal(base, valueString)
   override def litOpt: Option[Literal] = Some(this)
-  override def toString: String = name
+  override def toString: String = valueString
   override lazy val isInVCD: Boolean = false
 
   override def canCSE: Boolean = true
