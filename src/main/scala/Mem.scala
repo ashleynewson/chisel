@@ -254,7 +254,7 @@ class MemSeqRead(mem: Mem[_ <: Data], addri: Node) extends MemAccess(mem, addri)
 
 class PutativeMemWrite(mem: Mem[_ <: Data], addri: UInt) extends Node with proc {
   override def procAssign(src: Node) =
-    mem.doWrite(addri, Module.current.whenCond, src, None)
+    mem.doWrite(Buffer(addri), Module.current.whenCond, Buffer(src), None)
   // Chisel3 - this node contains data - used for verifying Wire() wrapping
   override def isTypeOnly = false
 }
@@ -269,6 +269,7 @@ class MemWrite(mem: Mem[_ <: Data], condi: Bool, addri: Node, datai: Node, maski
   override def cond = inputs(1)
   def cond_=(c: Bool) = inputs(1) = c
   clock = mem.clock
+  hidden = true // Always hide
 
   inferWidth = Node.fixWidth(mem.data.getWidth)
 

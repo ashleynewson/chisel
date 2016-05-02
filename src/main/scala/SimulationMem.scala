@@ -13,10 +13,15 @@ class SimulationMem(node: Mem[_]) extends SimulationNode(node) {
   val unwrittenAll = new SimulationBits(1, this)
   val tainted = Set[SimulationBits]() // Words
   val taintedBits = Set[SimulationBit]()
+  var simulation: Simulation = null
 
   val data = new Array[SimulationBits](node.n)
   for (i <- 0 to node.n-1) {
     data(i) = new SimulationBits(node.width, this)
+  }
+
+  override def postLinkSetup(s: Simulation): Unit = {
+    simulation = s
   }
 
   override def getSimulationBits(): Set[SimulationBit] = {
@@ -38,6 +43,10 @@ class SimulationMem(node: Mem[_]) extends SimulationNode(node) {
 
   // Need to revise the technicallity vs utility of this section.
   override def evaluate(): Unit = {
+    if (simulation.reset) {
+      // Don't make any modifications whilst preping simulation.
+      return
+    }
     for (input <- inputs) {
       val writer = input.asInstanceOf[SimulationMemWrite]
 
@@ -60,6 +69,7 @@ class SimulationMem(node: Mem[_]) extends SimulationNode(node) {
       for (input <- inputs) {
         val writer = input.asInstanceOf[SimulationMemWrite]
 
+        unwritten.depend(writer.output)
         if (writer.inputs(1).output(0)) {
           unwritten.depend(writer.inputs(0).output)
         } else {
@@ -118,7 +128,7 @@ class SimulationMem(node: Mem[_]) extends SimulationNode(node) {
     builder.append("\"name\":\"" + node.annotationName + "\",")
     builder.append("\"type\":\"data\",")
     builder.append("\"in\":" + isInSlice(sliceBits) + ",")
-    builder.append("\"hide\":" + node.hidden + ",")
+    builder.append("\"hide\":" + isHidden + ",")
     builder.append("\"width\":" + node.width + ",")
     builder.append("\"size\":" + node.n + ",")
 

@@ -8,13 +8,28 @@ function getBits(binData, first, until) {
 
 function highlightBits(state, mask) {
     bitString = "";
+    complexMask = false;
     for (var i = 0; i < state.length; i++) {
-        if (mask[i] === 1) {
-            bitString += "<b>" + (state[i]).toString() + "</b>";
-            // bitString += (state[i]).toString();
-        } else {
+        if (mask[i] === 0) {
+            complexMask = true;
+            break;
+        }
+    }
+    if (complexMask) {
+        for (var i = 0; i < state.length; i++) {
+            if (mask[i] === 1) {
+                bitString += "<b>" + (state[i]).toString() + "</b>";
+                // bitString += (state[i]).toString();
+            } else {
+                bitString += (state[i]).toString();
+            }
+        }
+    } else {
+        bitString += "<b>";
+        for (var i = 0; i < state.length; i++) {
             bitString += (state[i]).toString();
         }
+        bitString += "</b>"
     }
     return bitString;
 }

@@ -366,6 +366,13 @@ class DynamicSliceBackend extends Backend with Slicer {
       System.err.println("Found node from criterion " + criterion.specification + " to be " + criterion.nodes.map((node) => node.name))
       seedNodes ++= criterion.nodes
 
+      // criterion.direction match {
+      //   case Criterion.Direction.Backward => {
+      //     Driver.enableHidding = true
+      //   }
+      //   case _ => ()
+      // }
+
       for (node <- criterion.nodes) {
         val simulationNode = simulation.getSimulationNode(node)
         val bits: Array[SimulationBit] = criterion.positions.last.address match {

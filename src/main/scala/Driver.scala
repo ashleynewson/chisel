@@ -329,6 +329,7 @@ object Driver extends FileSystemUtilities{
     sliceCriteria = Nil
     simulationTest = null
     strictSlice = true
+    enableHidding = true
     refineNodeStructure = true
     chiselConfigClassName = None
     chiselProjectName = None
@@ -509,6 +510,7 @@ object Driver extends FileSystemUtilities{
   var sliceCriteria: List[String] = Nil
   var simulationTest: String = null
   var strictSlice = true
+  var enableHidding = true
   var traceSimulation = false
   var refineNodeStructure = true
   /* ChiselConfig flags */

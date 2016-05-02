@@ -102,11 +102,9 @@ object AssignmentMultiplex {
   def apply (t: Node, c: Node, a: Node): Node = {
     val mux = Multiplex(t, c, a)
     mux.hidden = true
-    if (!Driver.strictSlice) {
-      mux.getNode match {
-        case realMux: Mux => realMux.biasDependence(1)
-        case _ => ()
-      }
+    mux match {
+      case realMux: Mux => realMux.isAssignment = true
+      case _ => ()
     }
     mux
   }
@@ -194,6 +192,9 @@ object Mux {
   */
 class Mux extends Op {
   val op = "Mux"
+  /* If thie was created from := */
+  var isAssignment = false
+
   override def toString: String =
     inputs(0) + " ? " + inputs(1) + " : " + inputs(2)
   /** set last input to 'a' */
@@ -238,5 +239,9 @@ class Mux extends Op {
         replaceTree(inputs(2))
       }
     }
+  }
+
+  override def getSimulationNode(): SimulationNode = {
+    new SimulationMux(this)
   }
 }

@@ -16,7 +16,7 @@ abstract class SimulationNode(val node: Node) extends SimulationAnnotation {
   protected var evaluationIndex = -1
   var clockSet = Set[SimulationClock]()
   var clockSetReady = false
-  var forwardTracked = false
+  // var forwardTracked = false
 
   // It may be useful to make groups evaluate together to aid memory cache hits...
   // Not prematurely optimising for now.
@@ -124,13 +124,17 @@ abstract class SimulationNode(val node: Node) extends SimulationAnnotation {
     outputBits.isInSlice(sliceBits)
   }
 
+  override def isHidden: Boolean = {
+    (Driver.enableHidding && node.hidden)
+  }
+
   override def dumpJSON(sliceBits: Set[SimulationBit]): String = {
     val builder = new StringBuilder()
     builder.append("{")
     builder.append("\"name\":\"" + node.annotationName + "\",")
     builder.append("\"type\":\"data\",")
     builder.append("\"in\":" + isInSlice(sliceBits) + ",")
-    builder.append("\"hide\":" + node.hidden + ",")
+    builder.append("\"hide\":" + isHidden + ",")
     builder.append("\"width\":" + outputBits.width + ",")
     builder.append("\"size\":1,")
 

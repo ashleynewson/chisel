@@ -210,16 +210,6 @@ class Simulation(val topModule: Module) {
     nodeSet
   }
 
-  // def criticalNodes(): Set[Node] = {
-  //   val traceSet = Set[Node]()
-  //   for ((_, simulationNode) <- nodeMap) {
-  //     if (simulationNode.isTracked) {
-  //       traceSet += simulationNode.node
-  //     }
-  //   }
-  //   traceSet
-  // }
-
   def getSimulationNode(node: Node): SimulationNode = {
     nodeMap(node)
   }

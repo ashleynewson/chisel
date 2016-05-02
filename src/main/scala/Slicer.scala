@@ -42,8 +42,18 @@ trait Slicer {
       // def ==(that: StackTraceElement): Boolean = {
       //   that != null && (filename == that.getFileName() && line == that.getLineNumber())
       // }
-      def matches(that: StackTraceElement, thatName: String): Boolean = {
-        that != null && (filename == that.getFileName() && line == that.getLineNumber()) && (if (name != null && thatName != null) (name == thatName) else true)
+      def matches(that: StackTraceElement, thatName: String, acceptNoName: Boolean): Boolean = {
+        that != null &&
+        (filename == that.getFileName() && line == that.getLineNumber()) &&
+        (if (thatName != null) {
+          if (name != null) {
+            name == thatName
+          } else {
+            false
+          }
+        } else {
+          acceptNoName
+        })
       }
     }
 
@@ -73,14 +83,14 @@ trait Slicer {
         // Were looking for a node.
         for (node <- top.nodes) {
           // if (position == node.line) {
-          if (position.matches(node.line, node.name)) {
+          if (position.matches(node.line, node.name, !(Driver.enableHidding && node.hidden))) {
             found += node
           }
         }
       } else {
         // Were looking for a module instantiation.
         for (subModule <- top.children) {
-          if (position.matches(subModule.instantiationLine, subModule.name)) {
+          if (position.matches(subModule.instantiationLine, subModule.name, true)) {
             found ++= findNode(subModule, nextPositions)
           }
         }

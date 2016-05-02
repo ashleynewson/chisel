@@ -36,5 +36,7 @@ trait SimulationAnnotation {
 
   def isInSlice(sliceBits: Set[SimulationBit]): Boolean
 
+  def isHidden: Boolean
+
   def dumpJSON(sliceBits: Set[SimulationBit]): String
 }
