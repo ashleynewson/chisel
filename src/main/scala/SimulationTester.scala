@@ -4,6 +4,8 @@
 
 package Chisel
 
+import scala.util.Random
+
 object SimulationTester {
   object DependenceSet {
     val activeSets = scala.collection.mutable.Set[DependenceSet]()
@@ -68,6 +70,8 @@ object SimulationTester {
 
 // Doesn't work the same way as a normal tester.
 class SimulationTester(module: Module, simulation: Simulation) {
+  val rnd = new Random(Driver.testerSeed)
+
   def peek(data: Bits): BigInt = {
     simulation.getSimulationNode(data).output.bigInt
   }
@@ -91,23 +95,35 @@ class SimulationTester(module: Module, simulation: Simulation) {
   // }
 
   def poke(data: Bits, x: Boolean): Unit = {
-    simulation.getSimulationNode(data).output(0) = x
+    val simulationNode = simulation.getSimulationNode(data)
+    simulationNode.output(0) = x
+    simulationNode.propagate()
   }
   def poke(data: Bits, x: Int): Unit = {
-    simulation.getSimulationNode(data).output.int = x
+    val simulationNode = simulation.getSimulationNode(data)
+    simulationNode.output.int = x
+    simulationNode.propagate()
   }
   def poke(data: Bits, x: Long): Unit = {
-    simulation.getSimulationNode(data).output.long = x
+    val simulationNode = simulation.getSimulationNode(data)
+    simulationNode.output.long = x
+    simulationNode.propagate()
   }
   def poke(data: Bits, x: BigInt): Unit = {
-    simulation.getSimulationNode(data).output.bigInt = x
+    val simulationNode = simulation.getSimulationNode(data)
+    simulationNode.output.bigInt = x
+    simulationNode.propagate()
   }
   def poke(data: Bits, x: Float): Unit = {
-    simulation.getSimulationNode(data).output.float = x
+    val simulationNode = simulation.getSimulationNode(data)
+    simulationNode.output.float = x
+    simulationNode.propagate()
   }
-  def pokeAt[T <: Bits](data: Mem[T], value: BigInt, addr: Int): BigInt = {
+  def pokeAt[T <: Bits](data: Mem[T], value: BigInt, addr: Int): Unit = {
     // Don't use write.
-    simulation.getSimulationNode(data).asInstanceOf[SimulationMem].data(addr).bigInt = value
+    val simulationNode = simulation.getSimulationNode(data)
+    simulationNode.asInstanceOf[SimulationMem].data(addr).bigInt = value
+    simulationNode.propagate()
   }
 
   def expect(good: Boolean, msg: => String): Boolean = {

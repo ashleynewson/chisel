@@ -8,20 +8,17 @@ import collection.mutable.{Set}
 
 class SimulationMem(node: Mem[_]) extends SimulationNode(node) {
   override val clocked = true
+  val size = node.n
+
   /* Used to cheaply track dependencies for nodes without proper access */
   val unwritten = new SimulationBits(1, this)
   val unwrittenAll = new SimulationBits(1, this)
   val tainted = Set[SimulationBits]() // Words
   val taintedBits = Set[SimulationBit]()
-  var simulation: Simulation = null
 
   val data = new Array[SimulationBits](node.n)
   for (i <- 0 to node.n-1) {
     data(i) = new SimulationBits(node.width, this)
-  }
-
-  override def postLinkSetup(s: Simulation): Unit = {
-    simulation = s
   }
 
   override def getSimulationBits(): Set[SimulationBit] = {

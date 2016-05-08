@@ -39,4 +39,6 @@ trait SimulationAnnotation {
   def isHidden: Boolean
 
   def dumpJSON(sliceBits: Set[SimulationBit]): String
+
+  def staticDumpJSON(sliceBits: Set[SimulationBit]): String
 }

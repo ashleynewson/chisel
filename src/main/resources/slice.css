@@ -17,12 +17,16 @@ pre .numbering {
     padding-right: 0.5em;
 }
 
-pre .numbering span, pre .numbering a {
+pre .numbering span.line, pre .numbering a {
     display: block;
 }
 
 pre .numbering span a {
     display: inline;
+}
+
+.hidespan span.hideable {
+    display: none;
 }
 
 pre {
@@ -50,4 +54,10 @@ a:visited.hide {
 }
 a:hover.hide {
     color: rgba(0, 0, 255, 1.0);
+}
+
+@media print {
+    .no-print, .no-print * {
+        display: none !important;
+    }
 }

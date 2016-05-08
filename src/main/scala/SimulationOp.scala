@@ -4,6 +4,8 @@
 
 package Chisel
 
+import scala.collection.mutable.Set
+
 class SimulationOp(node: Op) extends SimulationNode(node) {
   override val clocked = false
 
@@ -97,20 +99,23 @@ class SimulationOp(node: Op) extends SimulationNode(node) {
         node.op match {
           case "<<" => {
             outputBits.bigInt = inputs(0).output.bigInt << inputs(1).output.int
-            // TODO: Trivial
-            outputBits.depend(inputs(0).output)
+            for (i <- 0 to outputBits.highest - inputs(1).output.int) {
+              outputBits(i + inputs(1).output.int) := inputs(0).output(i)
+            }
             outputBits.depend(inputs(1).output)
           }
           case ">>" => {
             outputBits.bigInt = inputs(0).output.bigInt >> inputs(1).output.int
-            // TODO: Trivial
-            outputBits.depend(inputs(0).output)
+            for (i <- 0 to outputBits.highest - inputs(1).output.int) {
+              outputBits(i) := inputs(0).output(i + inputs(1).output.int)
+            }
             outputBits.depend(inputs(1).output)
           }
           case "s>>" => {
             outputBits.bigInt = inputs(0).output.sBigInt >> inputs(1).output.int
-            // TODO: Trivial
-            outputBits.depend(inputs(0).output)
+            for (i <- 0 to outputBits.highest - inputs(1).output.int) {
+              outputBits(i) := inputs(0).output(i + inputs(1).output.int)
+            }
             outputBits.depend(inputs(1).output)
           }
           case "+" => {
@@ -134,22 +139,38 @@ class SimulationOp(node: Op) extends SimulationNode(node) {
             outputBits.depend(inputs(1).output)
           }
           case "/" => {
-            outputBits.bigInt = inputs(0).output.bigInt / inputs(1).output.bigInt
+            if (inputs(1).output.bigInt != 0) {
+              outputBits.bigInt = inputs(0).output.bigInt / inputs(1).output.bigInt
+            } else {
+              outputBits.bigInt = 0
+            }
             outputBits.depend(inputs(0).output)
             outputBits.depend(inputs(1).output)
           }
           case "s/s" => {
-            outputBits.bigInt = inputs(0).output.sBigInt / inputs(1).output.sBigInt
+            if (inputs(1).output.bigInt != 0) {
+              outputBits.bigInt = inputs(0).output.sBigInt / inputs(1).output.sBigInt
+            } else {
+              outputBits.bigInt = 0
+            }
             outputBits.depend(inputs(0).output)
             outputBits.depend(inputs(1).output)
           }
           case "%" => {
-            outputBits.bigInt = inputs(0).output.bigInt % inputs(1).output.bigInt
+            if (inputs(1).output.bigInt != 0) {
+              outputBits.bigInt = inputs(0).output.bigInt % inputs(1).output.bigInt
+            } else {
+              outputBits.bigInt = inputs(0).output.bigInt
+            }
             outputBits.depend(inputs(0).output)
             outputBits.depend(inputs(1).output)
           }
           case "s%s" => {
-            outputBits.bigInt = inputs(0).output.sBigInt % inputs(1).output.sBigInt
+            if (inputs(1).output.bigInt != 0) {
+              outputBits.bigInt = inputs(0).output.sBigInt % inputs(1).output.sBigInt
+            } else {
+              outputBits.bigInt = inputs(0).output.sBigInt
+            }
             outputBits.depend(inputs(0).output)
             outputBits.depend(inputs(1).output)
           }
@@ -168,11 +189,9 @@ class SimulationOp(node: Op) extends SimulationNode(node) {
           case "##" => {
             for (i <- 0 to inputs(0).output.highest) {
               outputBits(i + inputs(1).width) := inputs(0).output(i)
-              // outputBits(i + inputs(1).width).depend(inputs(0).output(i))
             }
             for (i <- 0 to inputs(1).output.highest) {
               outputBits(i) := inputs(1).output(i)
-              // outputBits(i).depend(inputs(1).output(i))
             }
           }
           case "&" => {
@@ -369,34 +388,106 @@ class SimulationOp(node: Op) extends SimulationNode(node) {
           }
           case _ => ChiselError.error("Unsupported simulation operator in simulation: binary " + node.op + " @" + node.line.getFileName() + ":" + node.line.getLineNumber())
         }
-      case 3 =>
-        node.op match {
-          case "Mux" => {
-            // outputBits := (if (inputs(0).output(0)) inputs(1).output else inputs(2).output)
-            if (inputs(0).output(0)) {
-              outputBits := inputs(1).output
-              if (!node.dependenceBias.contains(2)) {
-                outputBits.depend(inputs(0).output)
-              }
-              // for (i <- 0 to outputBits.highest) {
-              //   outputBits(i).depend(inputs(0).output(0))
-              //   outputBits(i).depend(inputs(1).output(i))
-              // }
-            } else {
-              outputBits := inputs(2).output
-              if (!node.dependenceBias.contains(1)) {
-                outputBits.depend(inputs(0).output)
-              }
-              // for (i <- 0 to outputBits.highest) {
-              //   outputBits(i).depend(inputs(0).output(0))
-              //   outputBits(i).depend(inputs(2).output(i))
-              // }
-            }
-          }
-          case _ => ChiselError.error("Unsupported simulation operator in simulation: ternary " + node.op + " @" + node.line.getFileName() + ":" + node.line.getLineNumber())
-        }
+      // case 3 =>
+      //   node.op match {
+      //     case "Mux" => {
+      //       // outputBits := (if (inputs(0).output(0)) inputs(1).output else inputs(2).output)
+      //       if (inputs(0).output(0)) {
+      //         outputBits := inputs(1).output
+      //         if (!node.dependenceBias.contains(2)) {
+      //           outputBits.depend(inputs(0).output)
+      //         }
+      //         // for (i <- 0 to outputBits.highest) {
+      //         //   outputBits(i).depend(inputs(0).output(0))
+      //         //   outputBits(i).depend(inputs(1).output(i))
+      //         // }
+      //       } else {
+      //         outputBits := inputs(2).output
+      //         if (!node.dependenceBias.contains(1)) {
+      //           outputBits.depend(inputs(0).output)
+      //         }
+      //         // for (i <- 0 to outputBits.highest) {
+      //         //   outputBits(i).depend(inputs(0).output(0))
+      //         //   outputBits(i).depend(inputs(2).output(i))
+      //         // }
+      //       }
+      //     }
+      //     case _ => ChiselError.error("Unsupported simulation operator in simulation: ternary " + node.op + " @" + node.line.getFileName() + ":" + node.line.getLineNumber())
+      //   }
       case _ => ChiselError.error("Unsupported simulation operator in simulation: unsupported arity " + node.op + " @" + node.line.getFileName() + ":" + node.line.getLineNumber())
     }
     // System.err.println("Op " + node.line.getFileName() + ":" + node.line.getLineNumber() + " to " + output.toString())
+  }
+
+  override def staticDependencies(bit: SimulationBit): Set[SimulationBit] = {
+    inputs.length match {
+      case 1 =>
+        node.op match {
+          case "~" => return staticDependencyBit(inputs(0), bit)
+          case "f-" => return staticDependencyBit(inputs(0), bit)
+          case "d-" => return staticDependencyBit(inputs(0), bit)
+          case _ => return super.staticDependencies(bit)
+        }
+      case 2 =>
+        node.op match {
+          case "##" => {
+            for (i <- 0 to inputs(0).output.highest) {
+              if (outputBits(i + inputs(1).width) == bit) {
+                return Set(inputs(0).output(i))
+              }
+            }
+            for (i <- 0 to inputs(1).output.highest) {
+              if (outputBits(i) == bit) {
+                return Set(inputs(1).output(i))
+              }
+            }
+          }
+          case "&" => return staticDependencyBit(inputs(0), bit) ++ staticDependencyBit(inputs(1), bit)
+          case "|" => return staticDependencyBit(inputs(0), bit) ++ staticDependencyBit(inputs(1), bit)
+          case _ => return super.staticDependencies(bit)
+        }
+      case 3 =>
+        node.op match {
+          case _ => return super.staticDependencies(bit)
+        }
+      case _ => return super.staticDependencies(bit)
+    }
+    return super.staticDependencies(bit)
+  }
+
+  override def staticDependents(bit: SimulationBit): Set[SimulationBit] = {
+    inputs.length match {
+      case 1 =>
+        node.op match {
+          case "~" => return staticDependentBit(inputs(0), bit)
+          case "f-" => return staticDependentBit(inputs(0), bit)
+          case "d-" => return staticDependentBit(inputs(0), bit)
+          case _ => return super.staticDependents(bit)
+        }
+      case 2 =>
+        node.op match {
+          case "##" => {
+            for (i <- 0 to inputs(0).output.highest) {
+              if (inputs(0).output(i) == bit) {
+                return Set(outputBits(i + inputs(1).width))
+              }
+            }
+            for (i <- 0 to inputs(1).output.highest) {
+              if (inputs(1).output(i) == bit) {
+                return Set(outputBits(i))
+              }
+            }
+          }
+          case "&" => return staticDependentBit(inputs(0), bit) ++ staticDependentBit(inputs(1), bit)
+          case "|" => return staticDependentBit(inputs(0), bit) ++ staticDependentBit(inputs(1), bit)
+          case _ => return super.staticDependents(bit)
+        }
+      case 3 =>
+        node.op match {
+          case _ => return super.staticDependents(bit)
+        }
+      case _ => return super.staticDependents(bit)
+    }
+    return super.staticDependents(bit)
   }
 }

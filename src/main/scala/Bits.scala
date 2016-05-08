@@ -312,11 +312,15 @@ abstract class Bits extends Data with proc {
   }
 
   protected final def newBinaryOp(right: Bits, opName: String): this.type = {
-    fromNode(BinaryOp(this, right, opName))
+    if (Driver.minimiseSlice) {
+      fromNode(BinaryOp(this, right, opName).biasDependence(0))
+    } else {
+      fromNode(BinaryOp(this, right, opName))
+    }
   }
 
   protected final def newLogicalOp(right: Bits, opName: String): Bool = {
-    Bool(OUTPUT).asTypeFor(LogicalOp(this, right, opName))
+    Bool(OUTPUT).asTypeFor(LogicalOp(Buffer(this), Buffer(right), opName))
   }
 
   protected final def newReductionOp(opName: String): Bool = {

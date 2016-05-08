@@ -38,6 +38,7 @@ class StaticSliceBackend extends Backend with Slicer {
   val allDottable = false
   val useComponentNames = false
   var criteria: List[Criterion] = Nil
+  var simulation: Simulation = null
   /** Nodes which are the start of any slice */
   val seedNodes = Set[Node]()
   /**
@@ -45,6 +46,7 @@ class StaticSliceBackend extends Backend with Slicer {
    criteria
    */
   var sliceNodes: Set[Node] = null
+  var sliceBits: Set[SimulationBit] = null
   // var sliceLinks: Map[Node,Map[Node,Set[StackTraceElement]]] = null
   /** These source files will be converted into html pages */
   val requiredSourceFiles = Set[String]()
@@ -233,7 +235,9 @@ class StaticSliceBackend extends Backend with Slicer {
 
       for (m <- top.nodes) {
         val lineStr = (if (chiselMainLine.equals(m.line)) "?" else m.line.getLineNumber())
-        annotationsJson += "\"%s_%s\":%s".format(lineStr, m.name, "{\"name\":\"" + m.annotationName + "\",\"type\":\"bool\",\"in\":" + (if (sliceNodes.contains(m)) 1 else 0) + ",\"hide\":" + m.hidden + "}")
+        val simulationNode = simulation.getSimulationNode(m)
+        annotationsJson += "\"%s_%s\":%s".format(lineStr, m.name, simulationNode.staticDumpJSON(sliceBits))
+        // annotationsJson += "\"%s_%s\":%s".format(lineStr, m.name, "{\"name\":\"" + m.annotationName + "\",\"type\":\"bool\",\"in\":" + (if (sliceNodes.contains(m)) 1 else 0) + ",\"hide\":" + m.hidden + "}")
       }
 
       for (m <- top.nodes) {
@@ -380,50 +384,80 @@ class StaticSliceBackend extends Backend with Slicer {
   override def elaborate(c: Module): Unit = {
     super.elaborate(c)
 
-        // System.err.println(m.line)
-    // {
-    //   val a = c.children(0)
-      // System.err.println("----------------------------------------")
-      // System.err.println(a.nodes)
-      // System.err.println("----------------------------------------")
-      // a.bfs(System.err.println(_))
-      // System.err.println("----------------------------------------")
-      // Driver.bfs(System.err.println(_))
-      // System.err.println("----------------------------------------")
-      // Driver.idfs(System.err.println(_))
-      // System.err.println("----------------------------------------")
-      // a.nodes.map(System.err.println(_))
-      // System.err.println("----------------------------------------")
-      // a.nodes.map((x: Node) => System.err.println(x.line))
-      // System.err.println("----------------------------------------")
-    // }
-
     flattenAll
+
+    criteria = Driver.sliceCriteria.map((specification) => new Criterion(c, specification))
+
+    simulation = new Simulation(c) // Simulation structure is easier to slice.
+    simulation.canSlice = (criteria.size > 0)
 
     if (Driver.partitionIslands) {
       islands = createIslands()
     }
     var gn = -1;
 
-    criteria = Driver.sliceCriteria.map((specification) => new Criterion(c, specification))
-
+    if (simulation.canSlice) {
+      sliceBits = simulation.getSimulationBits()
+    } else {
+      sliceBits = Set()
+    }
     val sliceNodeSets = Set[Set[Node]]()
-    // val sliceLinksRaw = Map[Node,Map[Node,Set[StackTraceElement]]]()
 
     for (criterion <- criteria) {
-      System.err.println("Founds node from criterion " + criterion.specification + " to be " + criterion.nodes.map((node) => node.name))
+      System.err.println("Found nodes from criterion " + criterion.specification + " to be " + criterion.nodes.map((node) => node.name))
       seedNodes ++= criterion.nodes
 
-      val nodeSlice = NodeSlice.fromCriterion(criterion)
-      sliceNodeSets += nodeSlice.nodes
-      // sliceLinksRaw ++= nodeSlice.links
+      for (node <- criterion.nodes) {
+        val simulationNode = simulation.getSimulationNode(node)
+        val bits: Array[SimulationBit] = criterion.positions.last.bits match {
+          case Nil => {simulationNode.output.bits}
+          case sub1 :: Nil => {
+            simulationNode match {
+              case n: SimulationMem => n.data(sub1).bits
+              case n: SimulationROMData => n.data(sub1).bits
+              case n: SimulationNode => Array(n.output(sub1))
+            }
+          }
+          case sub1 :: sub2 :: Nil => {
+            simulationNode match {
+              case n: SimulationMem => Array(n.data(sub1).bits(sub2))
+              case n: SimulationROMData => Array(n.data(sub1).bits(sub2))
+            }
+          }
+        }
+        var maskBits = Set[SimulationBit]()
+        for (bit <- bits) {
+          criterion.direction match {
+            case Criterion.Direction.Forward => {
+              maskBits ++= simulation.staticForwardTraceBit(bit)
+            }
+            case Criterion.Direction.Backward => {
+              maskBits ++= simulation.staticBackwardTraceBit(bit)
+            }
+          }
+        }
+        sliceBits.retain(maskBits.contains(_))
+      }
     }
-    if (sliceNodeSets.size > 0) {
-      sliceNodes = sliceNodeSets.reduce((a, b) => a&b)
-    } else {
-      System.err.println("Warning: No slice sets")
-      sliceNodes = Set()
+    if (seedNodes.size == 0) {
+      System.err.println("Warning: No criteria nodes found")
     }
+    sliceNodes = simulation.getSliceNodes(sliceBits)
+    // for (criterion <- criteria) {
+    //   System.err.println("Found nodes from criterion " + criterion.specification + " to be " + criterion.nodes.map((node) => node.name))
+    //   seedNodes ++= criterion.nodes
+
+    //   val nodeSlice = NodeSlice.fromCriterion(criterion)
+    //   sliceNodeSets += nodeSlice.nodes
+    //   // sliceLinksRaw ++= nodeSlice.links
+    // }
+    // if (sliceNodeSets.size > 0) {
+    //   sliceNodes = sliceNodeSets.reduce((a, b) => a&b)
+    // } else {
+    //   System.err.println("Warning: No slice sets")
+    //   sliceNodes = Set()
+    // }
+    System.err.println("Bits in slice: " + sliceBits.size)
     System.err.println("Nodes in slice: " + sliceNodes.size)
     // for ((from, toset) <- sliceLinksRaw) {
     //   if (sliceNodes(from)) {

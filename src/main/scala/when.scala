@@ -57,7 +57,7 @@ object when {
   /** @param cond condition to execute upon
     * @param block a section of logic to enable if cond is true */
   def apply(cond: Bool)(block: => Unit): when = {
-    execWhen(cond){ block }
+    execWhen(Buffer(cond)){ block }
     new when(cond)
   }
 }
@@ -68,7 +68,7 @@ object when {
 class when (prevCond: Bool) {
   /** execute block when alternative cond is true */
   def elsewhen (cond: Bool)(block: => Unit): when = {
-    when.execWhen(((!prevCond).asHidden & cond).biasDependence(0).asHidden){ block }
+    when.execWhen(((!prevCond).asHidden & Buffer(cond)).biasDependence(0).asHidden){ block }
     new when((prevCond | cond).biasDependence(0).asHidden);
   }
   /** execute block by default */
@@ -76,7 +76,8 @@ class when (prevCond: Bool) {
     val cond = if (Driver.refineNodeStructure) {
       (!prevCond).asHidden
     } else {
-      // Need to use & rather than && to avoid Bool(true) optimising out
+      // Need to use & rather than && to avoid Bool(true) optimising out.
+      // The & Bool(true0) aids backward slicing.
       ((!prevCond).asHidden & Bool(true)).asHidden
     }
     cond.canBeUsedAsDefault = !Module.current.hasWhenCond

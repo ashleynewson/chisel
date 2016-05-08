@@ -23,6 +23,9 @@ class Simulation(val topModule: Module) {
   var reset: Boolean = true
 
   addSimulationNodes(topModule)
+  for (simulationNode <- nodeMap.values) {
+    simulationNode.simulation = this
+  }
   for (clock <- Driver.clocks) {
     if (nodeMap.get(clock).isEmpty) {
       nodeMap += (clock -> clock.getSimulationNode())
@@ -31,7 +34,7 @@ class Simulation(val topModule: Module) {
   linkSimulationNodes()
   findSimulationClocks()
   for (simulationNode <- nodeMap.values) {
-    simulationNode.postLinkSetup(this)
+    simulationNode.postLinkSetup()
   }
   associateClocks()
   orderSimulationNodes()
@@ -128,6 +131,12 @@ class Simulation(val topModule: Module) {
     }
   }
 
+  def propagateAll(): Unit = {
+    for (simulationClock <- simulationClocks) {
+      simulationClock.step()
+    }
+  }
+
   def clearDependencies(): Unit = {
     for (simulationNode <- simulationNodes) {
       simulationNode.clearDependencies()
@@ -196,6 +205,42 @@ class Simulation(val topModule: Module) {
       if (backwardFrom.affectedBy(simulationBit)) {
         traceSet += simulationBit
       }
+    }
+    traceSet
+  }
+
+  def staticForwardTraceBit(forwardFrom: SimulationBit): Set[SimulationBit] = {
+    val traceSet = Set[SimulationBit]()
+    var testBits = Set[SimulationBit](forwardFrom)
+    var newBits = Set[SimulationBit]()
+
+    while (testBits.size > 0) {
+      for (testBit <- testBits) {
+        for (consumer <- testBit.producer.node.consumers.map((x) => nodeMap(x))) {
+          newBits ++= consumer.staticDependents(testBit)
+        }
+      }
+      newBits --= traceSet
+      traceSet ++= newBits
+      testBits = newBits
+      newBits = Set()
+    }
+    traceSet
+  }
+
+  def staticBackwardTraceBit(backwardFrom: SimulationBit): Set[SimulationBit] = {
+    val traceSet = Set[SimulationBit]()
+    var testBits = Set[SimulationBit](backwardFrom)
+    var newBits = Set[SimulationBit]()
+
+    while (testBits.size > 0) {
+      for (testBit <- testBits) {
+        newBits ++= testBit.producer.staticDependencies(testBit)
+      }
+      newBits --= traceSet
+      traceSet ++= newBits
+      testBits = newBits
+      newBits = Set()
     }
     traceSet
   }

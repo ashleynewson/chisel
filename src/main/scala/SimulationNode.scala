@@ -16,6 +16,8 @@ abstract class SimulationNode(val node: Node) extends SimulationAnnotation {
   protected var evaluationIndex = -1
   var clockSet = Set[SimulationClock]()
   var clockSetReady = false
+  var immediateUserList: Option[List[SimulationNode]] = None
+  var simulation: Simulation = null
   // var forwardTracked = false
 
   // It may be useful to make groups evaluate together to aid memory cache hits...
@@ -27,7 +29,7 @@ abstract class SimulationNode(val node: Node) extends SimulationAnnotation {
   }
 
   /** Stuff run after linking up the simulation nodes */
-  def postLinkSetup(simulation: Simulation): Unit = {
+  def postLinkSetup(): Unit = {
   }
 
   /** Obtain the list of all SimulationBits associated with this node */
@@ -153,9 +155,94 @@ abstract class SimulationNode(val node: Node) extends SimulationAnnotation {
     builder.toString
   }
 
+  override def staticDumpJSON(sliceBits: Set[SimulationBit]): String = {
+    val builder = new StringBuilder()
+    builder.append("{")
+    builder.append("\"name\":\"" + node.annotationName + "\",")
+    builder.append("\"type\":\"mask\",")
+    builder.append("\"in\":" + isInSlice(sliceBits) + ",")
+    builder.append("\"hide\":" + isHidden + ",")
+    builder.append("\"width\":" + outputBits.width + ",")
+    builder.append("\"size\":1,")
+
+    {
+      builder.append("\"mask\":\"")
+      appendBase64FromBits(builder, outputBits.width, 1, (word: Int, bit: Int) => {sliceBits.contains(outputBits(bit))})
+      builder.append("\",")
+    }
+
+    builder.append("}")
+    builder.toString
+  }
+
   /* Returns whether any additional dependencies exist for a bit that
    haven't been added due to laziness */
   def extra_dependence(bit: SimulationBit): Set[SimulationBit] = {
     Set()
+  }
+
+  def staticDependencyBit(input: SimulationNode, bit: SimulationBit): Set[SimulationBit] = {
+    for (i <- 0 until output.width) {
+      if (output(i) == bit) {
+        return Set(input.output(i))
+      }
+    }
+    return Set() // Should probably throw error.
+  }
+
+  def staticDependentBit(input: SimulationNode, bit: SimulationBit): Set[SimulationBit] = {
+    for (i <- 0 until output.width) {
+      if (input.output(i) == bit) {
+        return Set(output(i))
+      }
+    }
+    return Set() // Should probably throw error.
+  }
+
+  def staticDependencies(bit: SimulationBit): Set[SimulationBit] = {
+    val dependencies = Set[SimulationBit]()
+    for (input <- inputs) {
+      dependencies ++= input.output.bits
+    }
+    dependencies
+  }
+
+  def staticDependents(bit: SimulationBit): Set[SimulationBit] = {
+    val dependents = Set[SimulationBit]()
+    dependents ++= output.bits
+    dependents
+  }
+
+  def immediateUsers: List[SimulationNode] = {
+    immediateUserList match {
+      case Some(l) => l
+      case None => {
+        val userSet = Set[SimulationNode]()
+        var testUsers = Set[SimulationNode](this)
+        var newUsers = Set[SimulationNode]()
+
+        while (testUsers.size > 0) {
+          for (testUser <- testUsers) {
+            for (consumer <- testUser.node.consumers.map((x) => simulation.getSimulationNode(x)) if consumer.clocked == false) {
+              newUsers += consumer
+            }
+          }
+          newUsers --= userSet
+          userSet ++= newUsers
+          testUsers = newUsers
+          newUsers = Set()
+        }
+        val l = userSet.toList.sortWith(_ < _)
+        immediateUserList = Some(l)
+        l
+      }
+    }
+  }
+
+  /** Force an update to all nodes in the immediate cone of influence */
+  def propagate(): Unit = {
+    for (simulationNode <- immediateUsers) {
+      simulationNode.evaluate()
+    }
   }
 }

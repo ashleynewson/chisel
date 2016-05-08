@@ -35,9 +35,12 @@ object Buffer {
         n match {
           case d: Data => {
             val buf = d match {
-              case _: Bool => Bool(OUTPUT)
-              case _: UInt => UInt(OUTPUT)
-              case _: SInt => SInt(OUTPUT)
+              case _: Bool => Wire(Bool())
+              case _: UInt => Wire(UInt())
+              case _: SInt => Wire(SInt())
+              // case _: Bool => Bool(OUTPUT)
+              // case _: UInt => UInt(OUTPUT)
+              // case _: SInt => SInt(OUTPUT)
             }
             // buf.inputs += n // Don't do :=, as that might depend on this function
             return buf.init("", Node.widthOf(0), n).asInstanceOf[T]

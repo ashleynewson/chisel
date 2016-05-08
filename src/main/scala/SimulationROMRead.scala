@@ -9,7 +9,7 @@ class SimulationROMRead(node: ROMRead) extends SimulationNode(node) {
   var rom: SimulationROMData = null
   var invalid: SimulationBits = null
 
-  override def postLinkSetup(simulation: Simulation): Unit = {
+  override def postLinkSetup(): Unit = {
     rom = inputs(1).asInstanceOf[SimulationROMData]
     invalid = new SimulationBits(rom.node.width)
     invalid.clear()

@@ -31,20 +31,37 @@ trait Slicer {
         val parts = positionStr.split(":")
         parts.size match {
           case 2 => new Position(parts(0), parts(1))
-          case 3 => new Position(parts(0), parts(1), Some(parts(2).toInt))
+          case 3 => new Position(parts(0), parts(1), Some(parts(2)))
           case _ => {ChiselError.error("Invalid source position: " + positionStr); null}
         }
       }
     }
-    class Position(val filename: String, lineAndName: String, val address: Option[Int] = None) {
-      val line: Int = {if (lineAndName.indexOf("_") == -1) lineAndName.toInt else lineAndName.substring(0, lineAndName.indexOf("_")).toInt}
-      val name: String = {if (lineAndName.indexOf("_") == -1) null else lineAndName.substring(lineAndName.indexOf("_") + 1)}
+    class Position(val filename: String, lineAndName: String, bitsString: Option[String] = None) {
+      val bits: List[Int] = {
+        bitsString match {
+          case None => Nil
+          case Some(s) => s.split(":").map(_.toInt).toList
+        }
+      }
+      val (name: String, line: Int) = {
+        if (lineAndName.indexOf("_") == -1)
+          if (lineAndName forall Character.isDigit)
+             (null, lineAndName.toInt)
+          else
+            (lineAndName, 0)
+        else
+          if (lineAndName.substring(0, lineAndName.indexOf("_")) forall Character.isDigit)
+             (lineAndName.substring(lineAndName.indexOf("_") + 1), lineAndName.substring(0, lineAndName.indexOf("_")).toInt)
+          else
+            (lineAndName, 0)            
+      }
       // def ==(that: StackTraceElement): Boolean = {
       //   that != null && (filename == that.getFileName() && line == that.getLineNumber())
       // }
       def matches(that: StackTraceElement, thatName: String, acceptNoName: Boolean): Boolean = {
         that != null &&
-        (filename == that.getFileName() && line == that.getLineNumber()) &&
+        (filename == that.getFileName() || filename == "") &&
+        (line == that.getLineNumber() || line == 0) &&
         (if (thatName != null) {
           if (name != null) {
             name == thatName

@@ -173,15 +173,8 @@ class DynamicSliceBackend extends Backend with Slicer {
 
       for (m <- top.nodes) {
         val lineStr = (if (chiselMainLine.equals(m.line)) "?" else m.line.getLineNumber())
-        // if (sliceNodes.contains(m)) {
-          val simulationNode = simulation.getSimulationNode(m)
-          simulationNode match {
-            case simulationAnnotation: SimulationAnnotation => {
-              annotationsJson += "\"%s_%s\":%s".format(lineStr, m.name, simulationAnnotation.dumpJSON(sliceBits))
-            }
-            case _ => {}
-          }
-        // }
+        val simulationNode = simulation.getSimulationNode(m)
+        annotationsJson += "\"%s_%s\":%s".format(lineStr, m.name, simulationNode.dumpJSON(sliceBits))
       }
 
       for (m <- top.nodes) {
@@ -348,10 +341,10 @@ class DynamicSliceBackend extends Backend with Slicer {
       sliceBits = Set()
     }
     // val sliceNodeSets = Set[Set[Node]]()
-    val sliceLinksRaw = Map[Node,Map[Node,Set[StackTraceElement]]]()
+    // val sliceLinksRaw = Map[Node,Map[Node,Set[StackTraceElement]]]()
 
     simulation.reset = true
-    simulation.step()
+    simulation.propagateAll()
     simulation.reset = false
     if (Driver.simulationTest == null) {
       simulation.run()
@@ -363,7 +356,7 @@ class DynamicSliceBackend extends Backend with Slicer {
     simulation.flattenTraces()
 
     for (criterion <- criteria) {
-      System.err.println("Found node from criterion " + criterion.specification + " to be " + criterion.nodes.map((node) => node.name))
+      System.err.println("Found nodes from criterion " + criterion.specification + " to be " + criterion.nodes.map((node) => node.name))
       seedNodes ++= criterion.nodes
 
       // criterion.direction match {
@@ -375,12 +368,19 @@ class DynamicSliceBackend extends Backend with Slicer {
 
       for (node <- criterion.nodes) {
         val simulationNode = simulation.getSimulationNode(node)
-        val bits: Array[SimulationBit] = criterion.positions.last.address match {
-          case None => {simulationNode.output.bits}
-          case Some(address) => {
+        val bits: Array[SimulationBit] = criterion.positions.last.bits match {
+          case Nil => {simulationNode.output.bits}
+          case sub1 :: Nil => {
             simulationNode match {
-              case n: SimulationMem => n.data(address).bits
-              case n: SimulationROMData => n.data(address).bits
+              case n: SimulationMem => n.data(sub1).bits
+              case n: SimulationROMData => n.data(sub1).bits
+              case n: SimulationNode => Array(n.output(sub1))
+            }
+          }
+          case sub1 :: sub2 :: Nil => {
+            simulationNode match {
+              case n: SimulationMem => Array(n.data(sub1).bits(sub2))
+              case n: SimulationROMData => Array(n.data(sub1).bits(sub2))
             }
           }
         }
