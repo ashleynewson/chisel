@@ -49,7 +49,7 @@ object when {
     // if (Driver.refineNodeStructure) {
       Module.current.whenConds.push((Module.current.whenCond & cond).biasDependence(0).asHidden)
     // } else {
-    //   Module.current.whenConds.push((Module.current.whenCond & Buffer(cond)).biasDependence(0).asHidden)
+    //   Module.current.whenConds.push((Module.current.whenCond & Buf(cond)).biasDependence(0).asHidden)
     // }
     block
     Module.current.whenConds.pop()
@@ -57,7 +57,7 @@ object when {
   /** @param cond condition to execute upon
     * @param block a section of logic to enable if cond is true */
   def apply(cond: Bool)(block: => Unit): when = {
-    execWhen(Buffer(cond)){ block }
+    execWhen(Buf(cond)){ block }
     new when(cond)
   }
 }
@@ -68,7 +68,7 @@ object when {
 class when (prevCond: Bool) {
   /** execute block when alternative cond is true */
   def elsewhen (cond: Bool)(block: => Unit): when = {
-    when.execWhen(((!prevCond).asHidden & Buffer(cond)).biasDependence(0).asHidden){ block }
+    when.execWhen(((!prevCond).asHidden & Buf(cond)).biasDependence(0).asHidden){ block }
     new when((prevCond | cond).biasDependence(0).asHidden);
   }
   /** execute block by default */
@@ -108,7 +108,7 @@ object switch {
     if (Driver.refineNodeStructure) {
       Module.current.switchKeys.push(c)
     } else {
-      Module.current.switchKeys.push(Buffer(c))
+      Module.current.switchKeys.push(Buf(c))
     }
     block
     Module.current.switchKeys.pop()

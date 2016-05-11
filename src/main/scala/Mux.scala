@@ -85,10 +85,10 @@ object Multiplex {
         // Needed to satisfy defaultness
         case Some(tl) => {
           if (tl.value == 0) {
-            Buffer(a)
+            Buf(a)
             // new Mux().init("", Node.maxWidth _, t, a, a)
           } else {
-            Buffer(c)
+            Buf(c)
             // new Mux().init("", Node.maxWidth _, t, c, c)
           }
         }

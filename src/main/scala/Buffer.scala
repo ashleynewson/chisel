@@ -5,7 +5,7 @@
 package Chisel
 
 /** Constructs a node which can be used to aid slice analysis. */
-object Buffer {
+object Buf {
   def apply[T <: Node](n: T): T = {
     // Being lazy for now
     // Mux(Bool(true), n, n)

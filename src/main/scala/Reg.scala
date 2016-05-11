@@ -143,7 +143,7 @@ object RegInit {
 class RegReset extends Reg {
   override def assignReset(rst: => Bool): Boolean = {
     if (procAssigned || isEnable) {
-      inputs(0) = Multiplex(rst, Buffer(inputs(1)), inputs(0))
+      inputs(0) = Multiplex(rst, Buf(inputs(1)), inputs(0))
     } else {
       super.doProcAssign(inputs(1), rst)
     }
@@ -163,7 +163,7 @@ class Reg extends Delay with proc {
 
   override def doProcAssign(src: Node, cond: Bool) {
     if (procAssigned || isEnable) {
-        inputs(0) = AssignmentMultiplex(cond, Buffer(src), inputs(0))
+        inputs(0) = AssignmentMultiplex(cond, Buf(src), inputs(0))
     } else {
       super.doProcAssign(src, cond)
     }

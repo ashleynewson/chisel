@@ -320,7 +320,7 @@ abstract class Bits extends Data with proc {
   }
 
   protected final def newLogicalOp(right: Bits, opName: String): Bool = {
-    Bool(OUTPUT).asTypeFor(LogicalOp(Buffer(this), Buffer(right), opName))
+    Bool(OUTPUT).asTypeFor(LogicalOp(Buf(this), Buf(right), opName))
   }
 
   protected final def newReductionOp(opName: String): Bool = {
