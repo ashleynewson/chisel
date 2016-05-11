@@ -69,7 +69,9 @@ object SimulationTester {
 }
 
 // Doesn't work the same way as a normal tester.
-class SimulationTester(module: Module, simulation: Simulation) {
+class SimulationTester(module: Module, simulation: Simulation, private var isTrace: Boolean = true, _base: Int = 16) {
+  def t: Int = simulation.cycles
+
   val rnd = new Random(Driver.testerSeed)
 
   def peek(data: Bits): BigInt = {
@@ -127,8 +129,22 @@ class SimulationTester(module: Module, simulation: Simulation) {
   }
 
   def expect(good: Boolean, msg: => String): Boolean = {
-    // Stub
-    true
+    if (isTrace) println(s"""${msg} ${if (good) "PASS" else "FAIL"}""")
+    good
+  }
+
+  def expect (data: Bits, expected: BigInt, msg: => String): Boolean = {
+    val mask = (BigInt(1) << data.needWidth) - 1
+    val got = peek(data) & mask
+    val exp = expected & mask
+    expect(got == exp, s"  EXPECT ${dumpName(data)} <- ${got.toString(_base)} == ${exp.toString(_base)}")
+  }
+  def expect (data: Bits, expected: BigInt): Boolean = {
+    expect(data, expected, "")
+  }
+
+  def dumpName(data: Node): String = {
+    data.getNode.chiselName
   }
 
   def step(n: Int): Unit = {

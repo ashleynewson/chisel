@@ -597,11 +597,11 @@ class Backend extends FileSystemUtilities{
     Driver.bfs {x =>
       // If this a UInt literal, generate a Chisel error.
       // Issue #168 - lit as port breaks chisel
-      if (Driver.refineNodeStructure && x.isTypeNode) {
+      if (x.isTypeNode) {
         ChiselError.error("Real node required here, but 'type' node found - did you neglect to insert a node with a direction?", x.line)
       }
       count += 1
-      for ((input, i) <- x.inputs.zipWithIndex if (input.isTypeNode)) {
+      for ((input, i) <- x.inputs.zipWithIndex if input.isTypeNode) {
         // if (Driver.refineNodeStructure) {
           x.inputs(i) = input.getNode
         // } else {

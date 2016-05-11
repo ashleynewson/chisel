@@ -21,8 +21,8 @@ class SimulationInput(node: Data) extends SimulationNode(node) {
 
   override def evaluate(): Unit = {
     if (stubbed) {
-      if (Driver.simulationTest == null) {
-        System.err.println("Input for " + node.line.getFileName() + ":" + node.line.getLineNumber())
+      if (Driver.simulationTest == null && !simulation.reset) {
+        System.err.println("Input for " + node.name + (if (node.line != null) " (" + node.line.getFileName() + ":" + node.line.getLineNumber() + ")" else "(unknown)"))
         val value = readLine()
         if (value != null && value != "") {
           outputBits.long = value.toLong

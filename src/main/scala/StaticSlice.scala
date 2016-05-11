@@ -52,7 +52,7 @@ class StaticSliceBackend extends Backend with Slicer {
   val requiredSourceFiles = Set[String]()
 
   Driver.getLineNumbers = true
-  Driver.refineNodeStructure = false
+  Driver.refineNodeStructure = Driver.refineSlicedStructure
 
   object NodeSlice {
     def fromCriterion(criterion: Criterion): NodeSlice = {
@@ -197,8 +197,8 @@ class StaticSliceBackend extends Backend with Slicer {
         res.append(indent)
         res.append("subgraph cluster" + emitRef(child) + "{\n")
         res.append("  " + indent)
-        // res.append("label = \"" + child.name + "\"\n")
-        res.append("label = \"" + child.name + "\n@" + child.instantiationLine + "\"\n")
+        res.append("label = \"" + child.name + "\"\n")
+        // res.append("label = \"" + child.name + "\n@" + child.instantiationLine + "\"\n")
       }
       val (innertext, innercrossings, childSliceJson, childInSlice) = emitModuleText(child, depth + 1, basedir + "/" + child.instantiationLine.getLineNumber() + "_" + child.name)
       res.append(innertext)
@@ -234,7 +234,7 @@ class StaticSliceBackend extends Backend with Slicer {
       }
 
       for (m <- top.nodes) {
-        val lineStr = (if (chiselMainLine.equals(m.line)) "?" else m.line.getLineNumber())
+        val lineStr = (if (m.line == null || chiselMainLine.equals(m.line)) "?" else m.line.getLineNumber())
         val simulationNode = simulation.getSimulationNode(m)
         annotationsJson += "\"%s_%s\":%s".format(lineStr, m.name, simulationNode.staticDumpJSON(sliceBits))
         // annotationsJson += "\"%s_%s\":%s".format(lineStr, m.name, "{\"name\":\"" + m.annotationName + "\",\"type\":\"bool\",\"in\":" + (if (sliceNodes.contains(m)) 1 else 0) + ",\"hide\":" + m.hidden + "}")
@@ -249,7 +249,8 @@ class StaticSliceBackend extends Backend with Slicer {
               island_res.append(indent)
               island_res.append(emitRef(m));
             }
-            var label  = "label=\"" + asValidLabel(m) + "\n@" + m.line
+            var label  = "label=\"" + asValidLabel(m)
+            // var label  = "label=\"" + asValidLabel(m) + "\n@" + m.line
             val anyLit = m.inputs.find(x => !isDottable(x));
             if (!anyLit.isEmpty) {
               var i = 0;
@@ -263,11 +264,10 @@ class StaticSliceBackend extends Backend with Slicer {
             }
             label += "\""
             var color = "color=\"black\""
-            // if (seedNodes(m)) {
-            //   color = "color=\"red\""
-            // } else 
             if (sliceNodes(m)) {
               color = "color=\"green\""
+            } else if (seedNodes(m)) {
+              color = "color=\"red\""
             }
 
             if (isNodeInIsland(m, island)) {
@@ -388,7 +388,9 @@ class StaticSliceBackend extends Backend with Slicer {
 
     criteria = Driver.sliceCriteria.map((specification) => new Criterion(c, specification))
 
-    simulation = new Simulation(c) // Simulation structure is easier to slice.
+    ChiselError.info("creating simulation structure")
+
+    simulation = new Simulation(c, true) // Simulation structure is easier to slice.
     simulation.canSlice = (criteria.size > 0)
 
     if (Driver.partitionIslands) {
@@ -402,6 +404,8 @@ class StaticSliceBackend extends Backend with Slicer {
       sliceBits = Set()
     }
     val sliceNodeSets = Set[Set[Node]]()
+
+    ChiselError.info("producing slice")
 
     for (criterion <- criteria) {
       System.err.println("Found nodes from criterion " + criterion.specification + " to be " + criterion.nodes.map((node) => node.name))
@@ -492,9 +496,19 @@ class StaticSliceBackend extends Backend with Slicer {
     out_slice.close()
 
     // Create the HTML pages for the source files
-    for (sourceName <- requiredSourceFiles) {
+    for (sourceName <- requiredSourceFiles if sourceName != "ChiselUtil.scala") { // For now, disable ChiselUtil.scala
       val escapedSourceName = xml.Utility.escape(sourceName);
-      val source = scala.io.Source.fromFile(sourceName).mkString
+      var source: String = null
+      for (dir <- Driver.sourceDirs if source == null) {
+        try {
+          source = scala.io.Source.fromFile(dir + "/" + sourceName).mkString
+        } catch {
+          case e: java.io.FileNotFoundException =>
+        }
+      }
+      if (source == null) {
+        ChiselError.error("File \"" + sourceName + "\" not found in " + Driver.sourceDirs)
+      }
       val escapedSource = xml.Utility.escape(source)
 
       val outHtml = createOutputFile(basedir + "/source_" + sourceName + ".html")

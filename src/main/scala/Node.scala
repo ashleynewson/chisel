@@ -209,8 +209,9 @@ abstract class Node extends Nameable {
   var clock: Option[Clock] = None
 
   /** The inputs that this node depends on */
-  val inputs: ArrayBuffer[Node] =
-    if (Driver.getLineNumbers) new Node.TrackingArrayBuffer[Node]() else ArrayBuffer[Node]()
+  val inputs: ArrayBuffer[Node] = ArrayBuffer[Node]()
+  // val inputs: ArrayBuffer[Node] =
+  //   if (Driver.getLineNumbers) new Node.TrackingArrayBuffer[Node]() else ArrayBuffer[Node]()
   /** nodes that consume one of my outputs */
   val consumers = LinkedHashSet[Node]()
   /** The trace information for chisel for this node */

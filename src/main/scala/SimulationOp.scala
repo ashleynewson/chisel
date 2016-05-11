@@ -99,21 +99,24 @@ class SimulationOp(node: Op) extends SimulationNode(node) {
         node.op match {
           case "<<" => {
             outputBits.bigInt = inputs(0).output.bigInt << inputs(1).output.int
-            for (i <- 0 to outputBits.highest - inputs(1).output.int) {
+            val maxBit = math.min(inputs(0).output.highest, outputBits.highest - inputs(1).output.int)
+            for (i <- 0 to maxBit) {
               outputBits(i + inputs(1).output.int) := inputs(0).output(i)
             }
             outputBits.depend(inputs(1).output)
           }
           case ">>" => {
             outputBits.bigInt = inputs(0).output.bigInt >> inputs(1).output.int
-            for (i <- 0 to outputBits.highest - inputs(1).output.int) {
+            val maxBit = math.min(inputs(0).output.highest - inputs(1).output.int, outputBits.highest)
+            for (i <- 0 to maxBit) {
               outputBits(i) := inputs(0).output(i + inputs(1).output.int)
             }
             outputBits.depend(inputs(1).output)
           }
           case "s>>" => {
             outputBits.bigInt = inputs(0).output.sBigInt >> inputs(1).output.int
-            for (i <- 0 to outputBits.highest - inputs(1).output.int) {
+            val maxBit = math.min(inputs(0).output.highest - inputs(1).output.int, outputBits.highest)
+            for (i <- 0 to maxBit) {
               outputBits(i) := inputs(0).output(i + inputs(1).output.int)
             }
             outputBits.depend(inputs(1).output)

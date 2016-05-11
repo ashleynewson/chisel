@@ -80,7 +80,7 @@ if (slicelet.type == "bool") {
     for (i = 0; i < size; i++) {
         margin.push('<a name="' + i.toString(16) + '">0x' + i.toString(16) + '</a>');
     }
-    annotationPre.innerHTML = '<code class="numbering">' + margin.join('') + '</code><code class="dump">' + output + '</code><span style="clear:both;"></span>';
+    annotationPre.innerHTML = '<p>Size: ' + slicelet.width + ' * ' + slicelet.size + '</p><code class="numbering">' + margin.join('') + '</code><code class="dump">' + output + '</code><span style="clear:both;"></span>';
 } else if (slicelet.type == "mask") {
     title.innerHTML = slicelet.name;
     output = "";
@@ -96,5 +96,6 @@ if (slicelet.type == "bool") {
     for (i = 0; i < size; i++) {
         margin.push('<a name="' + i.toString(16) + '">0x' + i.toString(16) + '</a>');
     }
-    annotationPre.innerHTML = '<code class="numbering">' + margin.join('') + '</code><code class="dump">' + output + '</code><span style="clear:both;"></span>';
+    var actualSize = typeof(slicelet.actualsize) === "undefined" ? size : slicelet.actualsize;
+    annotationPre.innerHTML = '<p>Size: ' + slicelet.width + ' * ' + actualSize + '</p><code class="numbering">' + margin.join('') + '</code><code class="dump">' + output + '</code><span style="clear:both;"></span>';
 }

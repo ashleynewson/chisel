@@ -12,7 +12,7 @@ class SimulationLiteral(node: Literal) extends SimulationNode(node) {
   outputBits.long = node.value.toLong
 
   override def postLinkSetup(): Unit = {
-    if (inputs.size > 0) {
+    if (inputs.size > 0 && !simulation.staticOnly) {
       var baseLit = this
       while (baseLit.inputs.size > 0) {
         baseLit = baseLit.inputs(0).asInstanceOf[SimulationLiteral]

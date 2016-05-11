@@ -330,8 +330,10 @@ object Driver extends FileSystemUtilities{
     simulationTest = null
     strictSlice = true
     minimiseSlice = false
+    sourceDirs = "./" :: Nil
     enableHidding = true
     refineNodeStructure = true
+    refineSlicedStructure = false
     chiselConfigClassName = None
     chiselProjectName = None
     chiselConfigMode = None
@@ -431,6 +433,8 @@ object Driver extends FileSystemUtilities{
         case "--simulationTest" => simulationTest = args(i + 1); i += 1
         case "--unstrictSlice" => strictSlice = false
         case "--minimiseSlice" => minimiseSlice = true
+        case "--refineSlicedStructure" => refineSlicedStructure = true
+        case "--sourceDir" => sourceDirs = args(i + 1) :: sourceDirs; i += 1
         case any => ChiselError.warning("'" + arg + "' is an unknown argument.")
       }
       i += 1
@@ -513,9 +517,11 @@ object Driver extends FileSystemUtilities{
   var simulationTest: String = null
   var strictSlice = true
   var minimiseSlice = false
+  var sourceDirs: List[String] = "." :: Nil
   var enableHidding = true
   var traceSimulation = false
   var refineNodeStructure = true
+  var refineSlicedStructure = false
   /* ChiselConfig flags */
   var chiselConfigClassName: Option[String] = None
   var chiselProjectName: Option[String] = None

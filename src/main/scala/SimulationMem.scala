@@ -16,9 +16,17 @@ class SimulationMem(node: Mem[_]) extends SimulationNode(node) {
   val tainted = Set[SimulationBits]() // Words
   val taintedBits = Set[SimulationBit]()
 
-  val data = new Array[SimulationBits](node.n)
-  for (i <- 0 to node.n-1) {
-    data(i) = new SimulationBits(node.width, this)
+  var data: Array[SimulationBits] = null
+
+  override def postLinkSetup(): Unit = {
+    if (simulation.staticOnly) {
+      data = new Array[SimulationBits](0)
+    } else {
+      data = new Array[SimulationBits](node.n)
+      for (i <- 0 to node.n-1) {
+        data(i) = new SimulationBits(node.width, this)
+      }
+    }
   }
 
   override def getSimulationBits(): Set[SimulationBit] = {
@@ -137,6 +145,27 @@ class SimulationMem(node: Mem[_]) extends SimulationNode(node) {
     {
       builder.append("\"mask\":\"")
       appendBase64FromBits(builder, node.width, node.n, (word: Int, bit: Int) => {sliceBits.contains(data(word)(bit))})
+      builder.append("\",")
+    }
+
+    builder.append("}")
+    builder.toString
+  }
+
+  override def staticDumpJSON(sliceBits: Set[SimulationBit]): String = {
+    val builder = new StringBuilder()
+    builder.append("{")
+    builder.append("\"name\":\"" + node.annotationName + "\",")
+    builder.append("\"type\":\"mask\",")
+    builder.append("\"in\":" + isInSlice(sliceBits) + ",")
+    builder.append("\"hide\":" + isHidden + ",")
+    builder.append("\"width\":" + outputBits.width + ",")
+    builder.append("\"size\":1,")
+    builder.append("\"actualsize\":" + node.n + ",")
+
+    {
+      builder.append("\"mask\":\"")
+      appendBase64FromBits(builder, outputBits.width, 1, (word: Int, bit: Int) => {sliceBits.contains(outputBits(bit))})
       builder.append("\",")
     }
 

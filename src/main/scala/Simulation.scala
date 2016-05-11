@@ -6,7 +6,7 @@ package Chisel
 
 import collection.mutable.{Map,Set}
 
-class Simulation(val topModule: Module) {
+class Simulation(val topModule: Module, val staticOnly: Boolean = false) {
   var canSlice = true
 
   private val nodeMap = Map[Node,SimulationNode]()
@@ -18,25 +18,31 @@ class Simulation(val topModule: Module) {
 
   private val simulationBits = Set[SimulationBit]()
 
-  private var cycles = 0
+  var cycles = 0
 
   var reset: Boolean = true
 
+  ChiselError.info("translating nodes")
   addSimulationNodes(topModule)
   for (simulationNode <- nodeMap.values) {
     simulationNode.simulation = this
   }
+  ChiselError.info("translating clocks")
   for (clock <- Driver.clocks) {
     if (nodeMap.get(clock).isEmpty) {
       nodeMap += (clock -> clock.getSimulationNode())
     }
   }
+  ChiselError.info("linking nodes")
   linkSimulationNodes()
   findSimulationClocks()
+  ChiselError.info("performing post-link setup")
   for (simulationNode <- nodeMap.values) {
     simulationNode.postLinkSetup()
   }
+  ChiselError.info("assigning nodes to clock domains")
   associateClocks()
+  ChiselError.info("ording evaluation")
   orderSimulationNodes()
   nextClockToTick = simulationClocks.head
   for (simulationNode <- nodeMap.values) {

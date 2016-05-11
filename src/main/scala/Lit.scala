@@ -328,7 +328,7 @@ class Literal extends Node {
   var hasInferredWidth = false
   var isZ = false
   var base = 'x'
-  var valueString: String = null
+  var valueString: String = ""
   lazy val value: BigInt = Literal.stringToVal(base, valueString)
   override def litOpt: Option[Literal] = Some(this)
   override def toString: String = valueString

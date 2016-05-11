@@ -17,7 +17,9 @@ class SimulationReg(node: Reg) extends SimulationNode(node) {
 
   /** Stuff run after linking up the simulation nodes */
   override def postLinkSetup(): Unit = {
-    doReset()
+    if (!simulation.staticOnly) {
+      doReset()
+    }
   }
 
   def doReset(): Unit = {

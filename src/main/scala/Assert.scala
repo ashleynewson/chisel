@@ -38,6 +38,10 @@ class Assert(condIn: Bool, resetIn: Bool, val message: String) extends Delay {
   def cond: Node = inputs(0)
   def cond_=(x: Bool) { inputs(0) = x }
   def reset: Node = inputs(1)
+
+  override def getSimulationNode(): SimulationNode = {
+    new SimulationNullComponent(this)
+  }
 }
 
 class BitsInObject(x: Node) extends UInt {
@@ -100,6 +104,10 @@ class PrintfBase(formatIn: String, argsIn: Seq[Node]) extends Delay {
   inferWidth = argWidth
 
   override lazy val isInVCD: Boolean = false
+
+  override def getSimulationNode(): SimulationNode = {
+    new SimulationNullComponent(this)
+  }
 }
 
 class Sprintf(formatIn: String, argsIn: Seq[Node]) extends PrintfBase(formatIn, argsIn)

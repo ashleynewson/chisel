@@ -17,15 +17,27 @@ class SimulationBits(val width: Int, var producer: SimulationNode = null) {
     // that.bits.copyToArray(bits)
     // that.history.copyToArray(history)
     // that
-    for (i <- 0 to highest) {
+    val limit = if (width < that.width) highest else that.width
+    for (i <- 0 until limit) {
       bits(i) := that.bits(i)
+    }
+    for (i <- limit until width) {
+      bits(i) := false
     }
     that
   }
 
-  def apply(idx: Int): SimulationBit = bits(idx)
-  def update(idx: Int, bit: SimulationBit): SimulationBit = {bits(idx) := bit; bit}
-  def update(idx: Int, bit: Boolean): Boolean = {bits(idx) := bit; bit}
+  def apply(idx: Int): SimulationBit = {
+    bits(idx)
+  }
+  def update(idx: Int, bit: SimulationBit): SimulationBit = {
+    bits(idx) := bit
+    bit
+  }
+  def update(idx: Int, bit: Boolean): Boolean = {
+    bits(idx) := bit
+    bit
+  }
 
   def int: Int = {
     var num: Int = 0
