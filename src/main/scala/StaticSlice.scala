@@ -211,7 +211,7 @@ class StaticSliceBackend extends Backend with Slicer {
       res.append(innercrossings)
 
       if (childSliceJson != null) {
-        if (chiselMainLine.equals(child.instantiationLine)) {
+        if (child.instantiationLine != null && chiselMainLine.equals(child.instantiationLine)) {
           childrenJson += "\"%s_%s\":%s".format("?", child.name, childSliceJson)
         } else {
           sliceLines += child.instantiationLine.getLineNumber()
@@ -279,7 +279,7 @@ class StaticSliceBackend extends Backend with Slicer {
             }
 
             if (sliceNodes(m)) {
-              if (!chiselMainLine.equals(m.line)) {
+              if (m.line != null && !chiselMainLine.equals(m.line)) {
                 sliceLines += m.line.getLineNumber()
               }
               inSlice = true
